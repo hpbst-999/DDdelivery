@@ -1,54 +1,50 @@
 import uuid
+from datetime import datetime
 from sqlalchemy.orm import Session
 from shapely.geometry import Point
 from geoalchemy2.shape import from_shape, to_shape
-from src.identity.application.interfaces import IAccountRepository, IUserProfileRepository, ICourierProfileRepository
-from src.identity.domain.entities import (
-    Account, AccountRole, UserProfile, CourierProfile, 
-    Coordinates, CourierStatus, PhoneNumber, Email
-)
-from src.identity.infrastructure.models import AccountModel, UserProfileModel, CourierProfileModel
+from src.identity.domain.entities.OTP import OTP
+from src.identity.domain.entities.account import Account
+from src.identity.domain.entities.courier_profile import CourierProfile
+from src.identity.domain.entities.user_profile import UserProfile
+from src.identity.domain.value_objects.enums import CourierStatus, AccountRole
+from src.identity.domain.value_objects.phone_number import PhoneNumber
+from src.identity.domain.value_objects.coordinates import Coordinates
+from src.identity.domain.value_objects.email import Email
+from src.identity.infrastructure.models import AccountModel, UserProfileModel, CourierProfileModel, OTPModel, RefreshTokenModel
 
 
-class SQLAlchemyAccountRepository(IAccountRepository):
+class SQLAlchemyAccountRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    def _to_entity(self, model: AccountModel):
+        return Account(
+            id=model.id,
+            roles=[AccountRole(r) for r in model.roles],
+            phone_number=PhoneNumber(model.phone_number) if model.phone_number else None,
+            email=Email(model.email) if model.email else None)
 
     def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
         model = self.session.query(AccountModel).filter_by(id=account_id).first()
         if not model:
             return None
             
-        return Account(
-            id=model.id,
-            roles=[AccountRole(r) for r in model.roles],
-            phone_number=PhoneNumber(model.phone_number) if model.phone_number else None,
-            email=Email(model.email) if model.email else None
-        )
+        return self._to_entity(model)
 
     def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
         model = self.session.query(AccountModel).filter_by(phone_number=phone_number.value).first()
         if not model:
             return None
             
-        return Account(
-            id=model.id,
-            roles=[AccountRole(r) for r in model.roles],
-            phone_number=phone_number,
-            email=Email(model.email) if model.email else None
-        )
+        return self._to_entity(model)
 
     def get_account_by_email(self, mail: Email) -> Account | None:
         model = self.session.query(AccountModel).filter_by(email=mail.value).first()
         if not model:
             return None
             
-        return Account(
-            id=model.id,
-            roles=[AccountRole(r) for r in model.roles],
-            phone_number=PhoneNumber(model.phone_number) if model.phone_number else None,
-            email=mail
-        )
+        return self._to_entity(model)
 
     def add_account(self, account: Account) -> None:
         model = AccountModel(
@@ -72,20 +68,22 @@ class SQLAlchemyAccountRepository(IAccountRepository):
             self.session.delete(model)
 
 
-class SQLAlchemyUserProfileRepository(IUserProfileRepository):
+class SQLAlchemyUserProfileRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    def _to_entity(self, model: UserProfileModel):
+        return UserProfile(
+            id=model.id,
+            name=model.name,
+            address=model.address)
 
     def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
         model = self.session.query(UserProfileModel).filter_by(id=profile_id).first()
         if not model:
             return None
             
-        return UserProfile(
-            id=model.id,
-            name=model.name,
-            address=model.address
-        )
+        return self._to_entity(model)
 
     def add_user(self, profile: UserProfile) -> None:
         model = UserProfileModel(
@@ -107,9 +105,17 @@ class SQLAlchemyUserProfileRepository(IUserProfileRepository):
             self.session.delete(model)
 
 
-class SQLAlchemyCourierProfileRepository(ICourierProfileRepository):
+class SQLAlchemyCourierProfileRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    def _to_entity(self, model: CourierProfileModel, coords: Coordinates):
+        return CourierProfile(
+            id=model.id,
+            name=model.name,
+            status=CourierStatus(model.status),
+            coordinates=coords
+        )
 
     def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
         model = self.session.query(CourierProfileModel).filter_by(id=profile_id).first()
@@ -121,12 +127,7 @@ class SQLAlchemyCourierProfileRepository(ICourierProfileRepository):
             shapely_point = to_shape(model.coordinates)
             coords = Coordinates(lat=shapely_point.y, lon=shapely_point.x)
 
-        return CourierProfile(
-            id=model.id,
-            name=model.name,
-            status=CourierStatus(model.status),
-            coordinates=coords
-        )
+        return self._to_entity(model=model, coords=coords)
 
     def add_courier(self, profile: CourierProfile) -> None:
         db_point = None
@@ -158,3 +159,72 @@ class SQLAlchemyCourierProfileRepository(ICourierProfileRepository):
         model = self.session.query(CourierProfileModel).filter_by(id=profile_id).first()
         if model:
             self.session.delete(model)
+
+class SQLAlchemyOTPRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def _to_entity(self, model: OTPModel) -> OTP:
+        return OTP(
+            session_id=model.session_id,
+            phone_number=PhoneNumber(model.phone_number),
+            code=model.code,
+            created_at=model.created_at,
+            expires_at=model.expires_at,
+            attempts_count=model.attempts_count,
+            max_attempts=model.max_attempts,
+            is_used=model.is_used
+        )
+
+    def save_otp(self, otp: OTP) -> None:
+        model = OTPModel(
+            session_id=otp.session_id,
+            phone_number=otp.phone_number.value,
+            code=otp.code,
+            created_at=otp.created_at,
+            expires_at=otp.expires_at,
+            attempts_count=otp.attempts_count,
+            max_attempts=otp.max_attempts,
+            is_used=otp.is_used
+        )
+        self.session.add(model)
+
+    def get_otp_by_session(self, session_id: str) -> OTP | None:
+        model = self.session.query(OTPModel).filter_by(session_id=session_id).first()
+        return self._to_entity(model) if model else None
+
+    def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP | None:
+        model = (
+            self.session.query(OTPModel).filter_by(phone_number=phone.value).order_by(OTPModel.created_at.desc()).first()
+        )
+        return self._to_entity(model) if model else None
+
+    def update_otp(self, otp: OTP) -> None:
+        model = self.session.query(OTPModel).filter_by(session_id=otp.session_id).first()
+        if model:
+            model.attempts_count = otp.attempts_count
+            model.is_used = otp.is_used
+
+class SQLAlchemyRefreshTokenRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def save_refresh_token(self,id: uuid.UUID, account_id: uuid.UUID, refresh_token: str,expires_at: datetime, created_at: datetime) -> None:
+        model = RefreshTokenModel(
+            id=id,
+            account_id=account_id,
+            refresh_token=refresh_token,
+            expires_at=expires_at,
+            created_at=created_at,
+            is_revoked=False
+        )
+        self.session.add(model)
+
+    def get_data_by_token(self, refresh_token: str) -> RefreshTokenModel | None:
+        return self.session.query(RefreshTokenModel).filter(
+            RefreshTokenModel.refresh_token == refresh_token,
+            RefreshTokenModel.is_revoked.is_(False)).first()
+
+    def revoke_token(self, refresh_token: str) -> None:
+        self.session.query(RefreshTokenModel).filter(
+            RefreshTokenModel.refresh_token == refresh_token).update({RefreshTokenModel.is_revoked: True})

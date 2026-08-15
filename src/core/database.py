@@ -24,7 +24,8 @@ def init_db() -> None:
     from src.identity.infrastructure.models import (
         AccountModel, 
         UserProfileModel, 
-        CourierProfileModel
+        CourierProfileModel,
+        OTPModel
     )
     
     Base.metadata.create_all(bind=engine)

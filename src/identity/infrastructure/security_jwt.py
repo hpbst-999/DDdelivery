@@ -9,18 +9,18 @@ class JwtTokenService(ITokenService):
         self.secret_key = secret_key
         self.algorithm = "HS256"
 
-    def generate_pair(self, account_id: str) -> TokenPair:
+    def generate_pair(self, account_id: uuid.UUID) -> TokenPair:
         now = datetime.now(timezone.utc)
         
         access_payload = {
-            "sub": account_id,
+            "sub": str(account_id),
             "type": "access",
             "exp": now + timedelta(minutes=35)
         }
         access_token = jwt.encode(access_payload, self.secret_key, algorithm=self.algorithm)
 
         refresh_payload = {
-            "sub": account_id,
+            "sub": str(account_id),
             "type": "refresh",
             "jti": str(uuid.uuid4()), 
             "exp": now + timedelta(days=30)

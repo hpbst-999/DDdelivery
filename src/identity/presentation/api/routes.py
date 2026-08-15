@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from src.identity.domain.exceptions import DomainException
-from src.identity.domain.entities import Account, UserProfile, CourierProfile
+from src.identity.domain.entities.account import Account
+from src.identity.domain.entities.user_profile import UserProfile
+from src.identity.domain.entities.courier_profile import CourierProfile
 from src.identity.presentation.api.schemas import RequestOTP,UpdateUserProfileRequest,UpdateCourierProfileRequest ,ResponseOTP,CourierProfileResponse, UserProfileResponse, VerifyOTPRequest, TokenResponse, RefreshRequest, LogoutRequest
 from src.identity.application.use_cases.request_otp import RequestOTPUseCase
 from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
@@ -29,7 +31,7 @@ def send_code(
 ):
     try:
         session_id = use_case.execute(raw_phone_number=request.phone)
-        return ResponseOTP(session_id=session_id)
+        return ResponseOTP(session_id=str(session_id))
     
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))

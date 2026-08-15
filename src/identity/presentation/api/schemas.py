@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from src.identity.domain.entities import CourierStatus
+from src.identity.domain.value_objects.enums import CourierStatus
 import uuid
 from typing import Optional
 

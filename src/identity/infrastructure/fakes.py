@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from src.identity.domain.entities import OTP
+from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.value_objects import PhoneNumber
 from src.identity.application.interfaces import IOTPRepository, ISmsSender, IUnitOfWork, ISessionRepository
 import uuid

@@ -1,6 +1,6 @@
 from datetime import datetime
 from src.identity.application.interfaces import ISmsSender
-from src.identity.domain.value_objects import PhoneNumber
+from src.identity.domain.value_objects.phone_number import PhoneNumber
 
 class SmsSender(ISmsSender):
     def send_sms(self, phone_number:PhoneNumber, text: str) -> None:
