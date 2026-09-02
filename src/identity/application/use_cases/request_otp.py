@@ -2,6 +2,8 @@ from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.entities.OTP import OTP
 from src.identity.application.interfaces import IUnitOfWork,ISmsSender
 from src.identity.domain.exceptions import OTPRateLimitError
+from src.outbox.domain.outbox_message import OutboxMessage
+import uuid
 
 class RequestOTPUseCase:
     def __init__(self, uow: IUnitOfWork, sms_gateway: ISmsSender):
@@ -24,6 +26,15 @@ class RequestOTPUseCase:
 
             new_otp = OTP.generate_otp(phone=phone_number)
             self.uow.otp_repository.save_otp(new_otp)
+
+            outbox_event = OutboxMessage(
+                id=uuid.uuid4(),
+                type="identity.otp_created",
+                payload={
+                    "phone_number": new_otp.phone_number.value,
+                    "code": new_otp.code,})
+            
+            self.uow.outbox.add(outbox_event)
         
         self.sms_gateway.send_sms(phone_number, f"your code: {new_otp.code}")
         

@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, TypedDict, Protocol
+from typing import TypedDict, Protocol
 from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.value_objects.email import Email
@@ -7,12 +7,13 @@ from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.courier_profile import CourierProfile
 from src.identity.domain.entities.user_profile import UserProfile
 from datetime import datetime
+from src.outbox.application.interfaces import IOutboxRepository
 class IOTPRepository(Protocol):
     def save_otp(self, otp: OTP) -> None:
         ...
-    def get_otp_by_session(self, session_id: str) -> Optional[OTP]:
+    def get_otp_by_session(self, session_id: str) -> OTP| None:
         ...
-    def get_latest_otp_by_phone(self, phone: PhoneNumber) -> Optional[OTP]: 
+    def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP| None: 
         ...
     def update_otp(self, otp: OTP) -> None: 
         ...
@@ -85,6 +86,8 @@ class IUnitOfWork(Protocol):
     accounts: IAccountRepository
     user_profiles: IUserProfileRepository
     courier_profiles: ICourierProfileRepository
+    #outbox
+    outbox: IOutboxRepository
 
     def __enter__(self):
         ...

@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, List
+from typing import  List
 from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.value_objects.email import Email
 from src.identity.domain.value_objects.enums import AccountRole
@@ -9,8 +9,8 @@ class Account:
         self, 
         id: uuid.UUID, 
         roles: List[AccountRole], 
-        phone_number: Optional[PhoneNumber] = None, 
-        email: Optional[Email] = None
+        phone_number: PhoneNumber | None  = None, 
+        email: Email | None = None
     ):
         self.id = id
         self.roles = roles

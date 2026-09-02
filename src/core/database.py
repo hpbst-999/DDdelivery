@@ -25,7 +25,8 @@ def init_db() -> None:
         AccountModel, 
         UserProfileModel, 
         CourierProfileModel,
-        OTPModel
+        OTPModel,
+        RefreshTokenModel
     )
     
     Base.metadata.create_all(bind=engine)

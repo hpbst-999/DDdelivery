@@ -18,7 +18,7 @@ class SQLAlchemyAccountRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def _to_entity(self, model: AccountModel):
+    def _to_entity(self, model: AccountModel) -> Account:
         return Account(
             id=model.id,
             roles=[AccountRole(r) for r in model.roles],
@@ -72,7 +72,7 @@ class SQLAlchemyUserProfileRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def _to_entity(self, model: UserProfileModel):
+    def _to_entity(self, model: UserProfileModel) -> UserProfile:
         return UserProfile(
             id=model.id,
             name=model.name,
@@ -109,7 +109,7 @@ class SQLAlchemyCourierProfileRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def _to_entity(self, model: CourierProfileModel, coords: Coordinates):
+    def _to_entity(self, model: CourierProfileModel, coords: Coordinates) -> CourierProfile:
         return CourierProfile(
             id=model.id,
             name=model.name,

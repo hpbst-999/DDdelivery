@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 from src.identity.domain.value_objects.coordinates import Coordinates
 from src.identity.domain.value_objects.enums import CourierStatus
 
@@ -7,9 +6,9 @@ class CourierProfile:
     def __init__(
         self, 
         id: uuid.UUID, 
-        name: Optional[str] = None, 
+        name: str| None = None, 
         status: CourierStatus = CourierStatus.OFFLINE, 
-        coordinates: Optional[Coordinates] = None
+        coordinates:  Coordinates | None= None
     ):
         self.id = id
         self.name = name

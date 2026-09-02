@@ -1,12 +1,11 @@
 import uuid
-from typing import Optional
 
 class UserProfile:
     def __init__(
         self, 
         id: uuid.UUID, 
-        name: Optional[str] = None, 
-        address: Optional[str] = None
+        name: str | None = None, 
+        address: str | None = None
     ):
         self.id = id
         self.name = name

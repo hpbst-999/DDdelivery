@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from src.identity.domain.value_objects.enums import CourierStatus
 import uuid
-from typing import Optional
 
 
 class RequestOTP(BaseModel):
@@ -35,9 +34,9 @@ class UpdateCourierProfileRequest(BaseModel):
 
 class CourierProfileResponse(BaseModel):
     id: uuid.UUID
-    name: Optional[str]
+    name: str | None = None
     status: CourierStatus
-    coordinates: Optional[CoordinatesSchema]
+    coordinates: CoordinatesSchema | None = None
 
 
 class UpdateUserProfileRequest(BaseModel):
@@ -47,5 +46,5 @@ class UpdateUserProfileRequest(BaseModel):
 
 class UserProfileResponse(BaseModel):
     id: uuid.UUID
-    name: Optional[str]
-    address: Optional[str]
+    name: str | None = None
+    address: str | None = None

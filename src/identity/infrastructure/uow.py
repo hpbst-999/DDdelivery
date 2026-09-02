@@ -9,6 +9,7 @@ from src.identity.infrastructure.postgres_repositories import (
     SQLAlchemyRefreshTokenRepository
 )
 from sqlalchemy.orm import Session
+from src.outbox.infrastructure.postgres_repository import SQLAlchemyOutboxRepository
 
 # class RedisUnitOfWork(IUnitOfWork):
 #     def __init__(self, redis_client: redis.Redis):
@@ -40,6 +41,8 @@ class SQLAlchemyUnitOfWork:
         self.user_profiles = SQLAlchemyUserProfileRepository(self.session)
         self.courier_profiles = SQLAlchemyCourierProfileRepository(self.session)
         self.refresh_tokens = SQLAlchemyRefreshTokenRepository(self.session)
+        #outbox
+        self.outbox = SQLAlchemyOutboxRepository(self.session)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
