@@ -1,4 +1,3 @@
-
 from src.outbox.infrastructure.models import OutboxMessageModel
 from src.outbox.domain.outbox_message import OutboxMessage
 from src.outbox.domain.enum import OutboxStatus
@@ -35,19 +34,15 @@ class SQLAlchemyOutboxRepository:
         self.session.add(model)
 
     def update(self, message: OutboxMessage) -> None:
-        model = self.session.get(OutboxMessageModel, message.id)
+        stmt = select(OutboxMessage).where(OutboxMessageModel.id == message.ig)
+        model = self.session.scalars(stmt).one_or_none()
         if model:
             model.status = message.status
             model.retry_count = message.retry_count
             model.processed_at = message.processed_at
 
     def get_pending_batch(self, limit: int = 10) -> list[OutboxMessage]:
-        message_list = self.session.scalars(
-        select(OutboxMessageModel)
-        .where(OutboxMessageModel.status == OutboxStatus.PENDING)
-        .order_by(OutboxMessageModel.created_at.asc())
-        .limit(limit)
-        .with_for_update(skip_locked=True)
-    ).all()
+        stmt = select(OutboxMessageModel).where(OutboxMessageModel.status == OutboxStatus.PENDING).order_by(OutboxMessageModel.created_at.asc()).limit(limit).with_for_update(skip_locked=True)
+        models = self.session.scalars(stmt).all()
     
-        return [self._to_entity(m) for m in message_list]
+        return [self._to_entity(m) for m in models]

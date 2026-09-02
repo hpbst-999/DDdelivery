@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from shapely.geometry import Point
 from geoalchemy2.shape import from_shape, to_shape
 from src.identity.domain.entities.OTP import OTP
@@ -26,21 +27,27 @@ class SQLAlchemyAccountRepository:
             email=Email(model.email) if model.email else None)
 
     def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
-        model = self.session.query(AccountModel).filter_by(id=account_id).first()
+        stmt = select(AccountModel).where(AccountModel.id == account_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if not model:
             return None
             
         return self._to_entity(model)
 
     def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
-        model = self.session.query(AccountModel).filter_by(phone_number=phone_number.value).first()
+        stmt = select(AccountModel).where(AccountModel.phone_number == phone_number)
+        model = self.session.scalars(stmt).one_or_none()
+
         if not model:
             return None
             
         return self._to_entity(model)
 
-    def get_account_by_email(self, mail: Email) -> Account | None:
-        model = self.session.query(AccountModel).filter_by(email=mail.value).first()
+    def get_account_by_email(self, email: Email) -> Account | None:
+        stmt = select(AccountModel).where(AccountModel.email == email)
+        model = self.session.scalars(stmt).one_or_none()
+        
         if not model:
             return None
             
@@ -56,14 +63,18 @@ class SQLAlchemyAccountRepository:
         self.session.add(model)
 
     def update_account(self, account: Account) -> None:
-        model = self.session.query(AccountModel).filter_by(id=account.id).first()
+        stmt = select(AccountModel).where(AccountModel.id == account.id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if model:
             model.roles = [role.value for role in account.roles]
             model.phone_number = account.phone_number.value if account.phone_number else None
             model.email = account.email.value if account.email else None
 
     def delete_account(self, account_id: uuid.UUID) -> None:
-        model = self.session.query(AccountModel).filter_by(id=account_id).first()
+        stmt = select(AccountModel).where(AccountModel.id == account_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if model:
             self.session.delete(model)
 
@@ -79,7 +90,9 @@ class SQLAlchemyUserProfileRepository:
             address=model.address)
 
     def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
-        model = self.session.query(UserProfileModel).filter_by(id=profile_id).first()
+        stmt = select(UserProfileModel).where(UserProfileModel.id == profile_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if not model:
             return None
             
@@ -94,13 +107,17 @@ class SQLAlchemyUserProfileRepository:
         self.session.add(model)
 
     def update_user(self, profile: UserProfile) -> None:
-        model = self.session.query(UserProfileModel).filter_by(id=profile.id).first()
+        stmt = select(UserProfileModel).where(UserProfileModel.id == profile.id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if model:
             model.name = profile.name
             model.address = profile.address
 
     def delete_user(self, profile_id: uuid.UUID) -> None:
-        model = self.session.query(UserProfileModel).filter_by(id=profile_id).first()
+        stmt = select(UserProfileModel).where(UserProfileModel.id == profile_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if model:
             self.session.delete(model)
 
@@ -118,7 +135,9 @@ class SQLAlchemyCourierProfileRepository:
         )
 
     def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
-        model = self.session.query(CourierProfileModel).filter_by(id=profile_id).first()
+        stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if not model:
             return None
             
@@ -144,7 +163,9 @@ class SQLAlchemyCourierProfileRepository:
         self.session.add(model)
 
     def update_courier(self, profile: CourierProfile) -> None:
-        model = self.session.query(CourierProfileModel).filter_by(id=profile.id).first()
+        stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile.id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if model:
             model.name = profile.name
             model.status = profile.status.value
@@ -156,7 +177,8 @@ class SQLAlchemyCourierProfileRepository:
                 model.coordinates = None
 
     def delete_courier(self, profile_id: uuid.UUID) -> None:
-        model = self.session.query(CourierProfileModel).filter_by(id=profile_id).first()
+        stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile_id)
+        model = self.session.scalars(stmt).one_or_none()
         if model:
             self.session.delete(model)
 
@@ -190,17 +212,21 @@ class SQLAlchemyOTPRepository:
         self.session.add(model)
 
     def get_otp_by_session(self, session_id: str) -> OTP | None:
-        model = self.session.query(OTPModel).filter_by(session_id=session_id).first()
+        stmt = select(OTPModel).where(OTPModel.session_id == session_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         return self._to_entity(model) if model else None
 
     def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP | None:
-        model = (
-            self.session.query(OTPModel).filter_by(phone_number=phone.value).order_by(OTPModel.created_at.desc()).first()
-        )
+        stmt = select(OTPModel).where(OTPModel.phone_number == phone.value).order_by(OTPModel.created_at.desc()).limit(1)
+        model = self.session.scalars(stmt).first()
+
         return self._to_entity(model) if model else None
 
     def update_otp(self, otp: OTP) -> None:
-        model = self.session.query(OTPModel).filter_by(session_id=otp.session_id).first()
+        stmt = select(OTPModel).where(OTPModel.session_id == otp.session_id)
+        model = self.session.scalars(stmt).one_or_none()
+
         if model:
             model.attempts_count = otp.attempts_count
             model.is_used = otp.is_used
@@ -221,10 +247,12 @@ class SQLAlchemyRefreshTokenRepository:
         self.session.add(model)
 
     def get_data_by_token(self, refresh_token: str) -> RefreshTokenModel | None:
-        return self.session.query(RefreshTokenModel).filter(
-            RefreshTokenModel.refresh_token == refresh_token,
-            RefreshTokenModel.is_revoked.is_(False)).first()
+        stmt = select(RefreshTokenModel).where(RefreshTokenModel.refresh_token == refresh_token,RefreshTokenModel.is_revoked.is_(False))
+        model = self.session.scalars(stmt).first()
+        return model
 
     def revoke_token(self, refresh_token: str) -> None:
-        self.session.query(RefreshTokenModel).filter(
-            RefreshTokenModel.refresh_token == refresh_token).update({RefreshTokenModel.is_revoked: True})
+        stmt = select(RefreshTokenModel).where(RefreshTokenModel.refresh_token == refresh_token)
+        model = self.session.scalars(stmt).first()
+        if model:
+            model.is_revoked = True
