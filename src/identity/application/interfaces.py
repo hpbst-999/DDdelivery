@@ -9,29 +9,29 @@ from src.identity.domain.entities.user_profile import UserProfile
 from datetime import datetime
 from src.outbox.application.interfaces import IOutboxRepository
 class IOTPRepository(Protocol):
-    def save_otp(self, otp: OTP) -> None:
+    async def save_otp(self, otp: OTP) -> None:
         ...
-    def get_otp_by_session(self, session_id: str) -> OTP| None:
+    async def get_otp_by_session(self, session_id: str) -> OTP| None:
         ...
-    def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP| None: 
+    async def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP| None: 
         ...
-    def update_otp(self, otp: OTP) -> None: 
-        ...
-
-class ISmsSender(Protocol):
-    def send_sms(self, phone: PhoneNumber, text: str) -> None: 
+    async def update_otp(self, otp: OTP) -> None: 
         ...
 
-class IEmailSender(Protocol):
-    def send_email(self, email: Email, text: str) -> None: 
-        ...
+# class ISmsSender(Protocol):
+#     def send_sms(self, phone: PhoneNumber, text: str) -> None: 
+#         ...
+
+# class IEmailSender(Protocol):
+#     def send_email(self, email: Email, text: str) -> None: 
+#         ...
 
 class IRefreshTokenRepository(Protocol):
-    def save_refresh_token(self, id: uuid.UUID, account_id: uuid.UUID, refresh_token: str, expires_at: datetime, created_at: datetime, is_revoked: bool) -> None:
+    async def save_refresh_token(self, id: uuid.UUID, account_id: uuid.UUID, refresh_token: str, expires_at: datetime, created_at: datetime, is_revoked: bool) -> None:
         ...
-    def get_data_by_token(self, refresh_token: str) -> dict | None:
+    async def get_data_by_token(self, refresh_token: str) -> dict | None:
         ...
-    def revoke_token(self, session_id: str) -> None:
+    async def revoke_token(self, refresh_token: str) -> None:
         ...
 
 class TokenPair(TypedDict):
@@ -47,55 +47,55 @@ class ITokenService(Protocol):
         ...
 
 class IAccountRepository(Protocol):
-    def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
+    async def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
         ...
-    def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
+    async def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
         ...
-    def get_account_by_email(self, email: Email) -> Account | None:
+    async def get_account_by_email(self, email: Email) -> Account | None:
         ...
-    def add_account(self, account: Account) -> None:
+    async def add_account(self, account: Account) -> None:
         ...
-    def update_account(self, account: Account) -> None:
+    async def update_account(self, account: Account) -> None:
         ...
-    def delete_account(self, account_id: uuid.UUID) -> None:
+    async def delete_account(self, account_id: uuid.UUID) -> None:
         ...
 
 class IUserProfileRepository(Protocol):
-    def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
+    async def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
         ...
-    def add_user(self, profile: UserProfile) -> None:
+    async def add_user(self, profile: UserProfile) -> None:
         ...
-    def update_user(self, profile: UserProfile) -> None:
+    async def update_user(self, profile: UserProfile) -> None:
         ...
-    def delete_user(self, profile_id: uuid.UUID) -> None:
+    async def delete_user(self, profile_id: uuid.UUID) -> None:
         ...
 
 class ICourierProfileRepository(Protocol):
-    def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
+    async def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
         ...
-    def add_courier(self, profile: CourierProfile) -> None:
+    async def add_courier(self, profile: CourierProfile) -> None:
         ...
-    def update_courier(self, profile: CourierProfile) -> None:
+    async def update_courier(self, profile: CourierProfile) -> None:
         ...
-    def delete_courier(self, profile_id: uuid.UUID) ->  None:
+    async def delete_courier(self, profile_id: uuid.UUID) ->  None:
         ...
 
 class IUnitOfWork(Protocol):
-    otp_repository: IOTPRepository
-    session_repository: IRefreshTokenRepository
+    otp: IOTPRepository
+    refresh_tokens: IRefreshTokenRepository
     accounts: IAccountRepository
     user_profiles: IUserProfileRepository
     courier_profiles: ICourierProfileRepository
     #outbox
     outbox: IOutboxRepository
 
-    def __enter__(self):
+    async def __aenter__(self):
         ...
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         ...
-    def commit(self):
+    async def commit(self):
         ...
-    def rollback(self):
+    async def rollback(self):
         ...
 
 

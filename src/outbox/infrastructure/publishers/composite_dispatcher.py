@@ -1,7 +1,7 @@
-from typing import Any, Callable
+from typing import Any, Callable, Awaitable
 import uuid
 
-EventHandler = Callable[[dict[str, Any]], None]
+EventHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
 class EventDispatcher:
     def __init__(self) -> None:
@@ -10,9 +10,9 @@ class EventDispatcher:
     def register(self, type: str, handler: EventHandler) -> None:
         self._handlers[type] = handler
 
-    def publish(self, type: str, payload: dict[str, Any]) -> None:
+    async def publish(self, type: str, payload: dict[str, Any]) -> None:
         handler = self._handlers.get(type)
         if not handler:
             raise ValueError(f"No handler registered for event type: '{type}'")
         
-        handler(payload)
+        await handler(payload)

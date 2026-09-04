@@ -4,6 +4,6 @@ class LogoutUseCase:
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow 
 
-    def execute(self, raw_refresh_token: str) -> None:
-        with self.uow:
-            self.uow.refresh_tokens.revoke_token(raw_refresh_token)
+    async def execute(self, refresh_token: str) -> None:
+        async with self.uow:
+            await self.uow.refresh_tokens.revoke_token(refresh_token)

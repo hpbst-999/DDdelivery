@@ -1,31 +1,31 @@
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 from src.outbox.domain.outbox_message import OutboxMessage
 
 class IOutboxRepository(Protocol):
-    def add(self, message: OutboxMessage) -> None:
+    async def add(self, message: OutboxMessage) -> None:
         ...
 
-    def update(self, message: OutboxMessage) -> None:
+    async def update(self, message: OutboxMessage) -> None:
         ...
 
-    def get_pending_batch(self, limit: int = 10) -> list[OutboxMessage]:
+    async def get_pending_batch(self, limit: int = 10) -> list[OutboxMessage]:
         ...
 
 class IMessagePublisher(Protocol):
-    def publish(self, type: str, payload: dict[str, Any])-> None:
+    async def publish(self, type: str, payload: dict[str, Any])-> None:
         ...
 
 class IOutboxUnitOfWork(Protocol):
     outbox: IOutboxRepository
 
-    def __enter__(self):
+    async def __aenter__(self) -> Self:
         ...
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         ...
 
-    def commit(self):
+    async def commit(self) -> None:
         ...
 
-    def rollback(self):
+    async def rollback(self) -> None:
         ...

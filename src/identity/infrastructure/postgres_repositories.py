@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from shapely.geometry import Point
 from geoalchemy2.shape import from_shape, to_shape
@@ -16,7 +16,7 @@ from src.identity.infrastructure.models import AccountModel, UserProfileModel, C
 
 
 class SQLAlchemyAccountRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     def _to_entity(self, model: AccountModel) -> Account:
@@ -26,61 +26,68 @@ class SQLAlchemyAccountRepository:
             phone_number=PhoneNumber(model.phone_number) if model.phone_number else None,
             email=Email(model.email) if model.email else None)
 
-    def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
+    async def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
         stmt = select(AccountModel).where(AccountModel.id == account_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if not model:
             return None
             
         return self._to_entity(model)
 
-    def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
+    async def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
         stmt = select(AccountModel).where(AccountModel.phone_number == phone_number)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if not model:
             return None
             
         return self._to_entity(model)
 
-    def get_account_by_email(self, email: Email) -> Account | None:
+    async def get_account_by_email(self, email: Email) -> Account | None:
         stmt = select(AccountModel).where(AccountModel.email == email)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
         
         if not model:
             return None
             
         return self._to_entity(model)
 
-    def add_account(self, account: Account) -> None:
+    async def add_account(self, account: Account) -> None:
         model = AccountModel(
             id=account.id,
             roles=[role.value for role in account.roles],
-            phone_number=account.phone_number.value if account.phone_number else None,
-            email=account.email.value if account.email else None
+            phone_number=account.phone_number if account.phone_number else None,
+            email=account.email if account.email else None
         )
         self.session.add(model)
+        await self.session.flush()
 
-    def update_account(self, account: Account) -> None:
+    async def update_account(self, account: Account) -> None:
         stmt = select(AccountModel).where(AccountModel.id == account.id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if model:
             model.roles = [role.value for role in account.roles]
-            model.phone_number = account.phone_number.value if account.phone_number else None
-            model.email = account.email.value if account.email else None
+            model.phone_number = account.phone_number if account.phone_number else None
+            model.email = account.email if account.email else None
 
-    def delete_account(self, account_id: uuid.UUID) -> None:
+    async def delete_account(self, account_id: uuid.UUID) -> None:
         stmt = select(AccountModel).where(AccountModel.id == account_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if model:
-            self.session.delete(model)
+            await self.session.delete(model)
+            await self.session.flush()
 
 
 class SQLAlchemyUserProfileRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     def _to_entity(self, model: UserProfileModel) -> UserProfile:
@@ -89,41 +96,47 @@ class SQLAlchemyUserProfileRepository:
             name=model.name,
             address=model.address)
 
-    def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
+    async def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
         stmt = select(UserProfileModel).where(UserProfileModel.id == profile_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if not model:
             return None
             
         return self._to_entity(model)
 
-    def add_user(self, profile: UserProfile) -> None:
+    async def add_user(self, profile: UserProfile) -> None:
         model = UserProfileModel(
             id=profile.id, 
             name=profile.name,
             address=profile.address
         )
         self.session.add(model)
+        await self.session.flush()
 
-    def update_user(self, profile: UserProfile) -> None:
+    async def update_user(self, profile: UserProfile) -> None:
         stmt = select(UserProfileModel).where(UserProfileModel.id == profile.id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if model:
             model.name = profile.name
             model.address = profile.address
 
-    def delete_user(self, profile_id: uuid.UUID) -> None:
+
+    async def delete_user(self, profile_id: uuid.UUID) -> None:
         stmt = select(UserProfileModel).where(UserProfileModel.id == profile_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if model:
-            self.session.delete(model)
+            await self.session.delete(model)
+            await self.session.flush()
 
 
 class SQLAlchemyCourierProfileRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     def _to_entity(self, model: CourierProfileModel, coords: Coordinates) -> CourierProfile:
@@ -134,9 +147,10 @@ class SQLAlchemyCourierProfileRepository:
             coordinates=coords
         )
 
-    def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
+    async def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
         stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if not model:
             return None
@@ -148,7 +162,7 @@ class SQLAlchemyCourierProfileRepository:
 
         return self._to_entity(model=model, coords=coords)
 
-    def add_courier(self, profile: CourierProfile) -> None:
+    async def add_courier(self, profile: CourierProfile) -> None:
         db_point = None
         if profile.coordinates:
             pt = Point(profile.coordinates.lon, profile.coordinates.lat)
@@ -157,18 +171,20 @@ class SQLAlchemyCourierProfileRepository:
         model = CourierProfileModel(
             id=profile.id,
             name=profile.name,
-            status=profile.status.value,
+            status=profile.status,
             coordinates=db_point
         )
         self.session.add(model)
+        await self.session.flush()
 
-    def update_courier(self, profile: CourierProfile) -> None:
+    async def update_courier(self, profile: CourierProfile) -> None:
         stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile.id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if model:
             model.name = profile.name
-            model.status = profile.status.value
+            model.status = profile.status
             
             if profile.coordinates:
                 pt = Point(profile.coordinates.lon, profile.coordinates.lat)
@@ -176,14 +192,16 @@ class SQLAlchemyCourierProfileRepository:
             else:
                 model.coordinates = None
 
-    def delete_courier(self, profile_id: uuid.UUID) -> None:
+    async def delete_courier(self, profile_id: uuid.UUID) -> None:
         stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
         if model:
-            self.session.delete(model)
+            await self.session.delete(model)
+            await self.session.flush()
 
 class SQLAlchemyOTPRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     def _to_entity(self, model: OTPModel) -> OTP:
@@ -198,10 +216,10 @@ class SQLAlchemyOTPRepository:
             is_used=model.is_used
         )
 
-    def save_otp(self, otp: OTP) -> None:
+    async def save_otp(self, otp: OTP) -> None:
         model = OTPModel(
             session_id=otp.session_id,
-            phone_number=otp.phone_number.value,
+            phone_number=otp.phone_number,
             code=otp.code,
             created_at=otp.created_at,
             expires_at=otp.expires_at,
@@ -210,32 +228,36 @@ class SQLAlchemyOTPRepository:
             is_used=otp.is_used
         )
         self.session.add(model)
+        await self.session.flush()
 
-    def get_otp_by_session(self, session_id: str) -> OTP | None:
+    async def get_otp_by_session(self, session_id: str) -> OTP | None:
         stmt = select(OTPModel).where(OTPModel.session_id == session_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         return self._to_entity(model) if model else None
 
-    def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP | None:
-        stmt = select(OTPModel).where(OTPModel.phone_number == phone.value).order_by(OTPModel.created_at.desc()).limit(1)
-        model = self.session.scalars(stmt).first()
+    async def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP | None:
+        stmt = select(OTPModel).where(OTPModel.phone_number == phone).order_by(OTPModel.created_at.desc()).limit(1)
+        result = await self.session.scalars(stmt)
+        model = result.first()
 
         return self._to_entity(model) if model else None
 
-    def update_otp(self, otp: OTP) -> None:
+    async def update_otp(self, otp: OTP) -> None:
         stmt = select(OTPModel).where(OTPModel.session_id == otp.session_id)
-        model = self.session.scalars(stmt).one_or_none()
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
         if model:
             model.attempts_count = otp.attempts_count
             model.is_used = otp.is_used
 
 class SQLAlchemyRefreshTokenRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
-    def save_refresh_token(self,id: uuid.UUID, account_id: uuid.UUID, refresh_token: str,expires_at: datetime, created_at: datetime) -> None:
+    async def save_refresh_token(self,id: uuid.UUID, account_id: uuid.UUID, refresh_token: str,expires_at: datetime, created_at: datetime) -> None:
         model = RefreshTokenModel(
             id=id,
             account_id=account_id,
@@ -245,14 +267,17 @@ class SQLAlchemyRefreshTokenRepository:
             is_revoked=False
         )
         self.session.add(model)
+        await self.session.flush()
 
-    def get_data_by_token(self, refresh_token: str) -> RefreshTokenModel | None:
+    async def get_data_by_token(self, refresh_token: str) -> RefreshTokenModel | None:
         stmt = select(RefreshTokenModel).where(RefreshTokenModel.refresh_token == refresh_token,RefreshTokenModel.is_revoked.is_(False))
-        model = self.session.scalars(stmt).first()
+        result = await self.session.scalars(stmt)
+        model = result.first()
         return model
 
-    def revoke_token(self, refresh_token: str) -> None:
+    async def revoke_token(self, refresh_token: str) -> None:
         stmt = select(RefreshTokenModel).where(RefreshTokenModel.refresh_token == refresh_token)
-        model = self.session.scalars(stmt).first()
+        result = await self.session.scalars(stmt)
+        model = result.first()
         if model:
             model.is_revoked = True

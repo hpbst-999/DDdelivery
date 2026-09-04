@@ -7,9 +7,9 @@ class UpdateUserProfileUseCase:
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow
 
-    def execute(self, account_id: str, name: str | None = None, address: str | None = None) -> UserProfile:
-        with self.pow:
-            profile = self.uow.user_profiles.get_user_by_id(account_id)
+    async def execute(self, account_id: str, name: str | None = None, address: str | None = None) -> UserProfile:
+        async with self.uow:
+            profile = await self.uow.user_profiles.get_user_by_id(account_id)
             if not profile:
                 raise ProfileNotFoundError("User profile not found")
 
@@ -19,6 +19,6 @@ class UpdateUserProfileUseCase:
             if address is not None:
                 profile.address = address
 
-            self.uow.user_profiles.update_user(profile)
+            await self.uow.user_profiles.update_user(profile)
 
         return profile

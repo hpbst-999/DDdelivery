@@ -35,8 +35,8 @@ class SQLAlchemyUnitOfWork:
     def __init__(self, session: Session):
         self.session = session
 
-    def __enter__(self):
-        self.otp_repository = SQLAlchemyOTPRepository(self.session)
+    async def __aenter__(self):
+        self.otp = SQLAlchemyOTPRepository(self.session)
         self.accounts = SQLAlchemyAccountRepository(self.session)
         self.user_profiles = SQLAlchemyUserProfileRepository(self.session)
         self.courier_profiles = SQLAlchemyCourierProfileRepository(self.session)
@@ -45,14 +45,14 @@ class SQLAlchemyUnitOfWork:
         self.outbox = SQLAlchemyOutboxRepository(self.session)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            self.rollback()
+            await self.rollback()
         else:
-            self.commit()
+            await self.commit()
 
-    def commit(self):
-        self.session.commit()
+    async def commit(self):
+        await self.session.commit()
 
-    def rollback(self):
-        self.session.rollback()
+    async def rollback(self):
+        await self.session.rollback()

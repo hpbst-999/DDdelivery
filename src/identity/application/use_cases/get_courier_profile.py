@@ -5,11 +5,11 @@ from src.identity.domain.exceptions import ProfileNotFoundError
 
 class GetCourierProfileUseCase:
     def __init__(self, uow: IUnitOfWork):
-        self.pow = uow
+        self.uow = uow
 
-    def execute(self, account_id: uuid.UUID) -> CourierProfile:
-        with self.uow:
-            profile = self.uow.courier_profiles.get_courier_by_id(account_id)
+    async def execute(self, account_id: uuid.UUID) -> CourierProfile:
+        async with self.uow:
+            profile = await self.uow.courier_profiles.get_courier_by_id(account_id)
             if not profile:
                 raise ProfileNotFoundError("Courier profile not found")
             return profile

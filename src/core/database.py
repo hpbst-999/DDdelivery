@@ -1,8 +1,13 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import DeclarativeBase
 from src.core.config import settings
 
-engine = create_engine(
+engine:AsyncEngine = create_async_engine(
     url=settings.database_url, 
     echo=True,
     pool_pre_ping=True,
@@ -10,16 +15,19 @@ engine = create_engine(
     max_overflow=10  
 )
 
-SessionFactory = sessionmaker(
+SessionFactory:AsyncSession = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
     autocommit=False, 
     autoflush=False, 
-    bind=engine
+    expire_on_commit=False
 )
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
-def init_db() -> None:
+async def init_db() -> None:
 
     from src.identity.infrastructure.models import (
         AccountModel, 
@@ -28,5 +36,7 @@ def init_db() -> None:
         OTPModel,
         RefreshTokenModel
     )
-    
-    Base.metadata.create_all(bind=engine)
+    from src.outbox.infrastructure.models import OutboxMessageModel
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

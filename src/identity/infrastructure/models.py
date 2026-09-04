@@ -6,11 +6,13 @@ from src.core.database import Base
 from sqlalchemy.orm import Mapped, mapped_column
 import uuid
 from datetime import datetime
+from typing import Any
+
 
 class AccountModel(Base):
     __tablename__ = 'accounts'
     
-    id = Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     phone_number: Mapped[str | None] = mapped_column(String(20), unique=True)
     email: Mapped[str | None] = mapped_column(String(255), unique=True)
     roles: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
@@ -41,7 +43,7 @@ class CourierProfileModel(Base):
 class OTPModel(Base):
     __tablename__ = "otps"
 
-    session_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     phone_number: Mapped[str] = mapped_column(String(20), index=True)
     code: Mapped[str] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

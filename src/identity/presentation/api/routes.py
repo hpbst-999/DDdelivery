@@ -25,24 +25,24 @@ from src.identity.presentation.dependencies import (
 router = APIRouter(tags=["Authentication"])
 
 @router.post("/otp/request", response_model=ResponseOTP)
-def send_code(
+async def send_code(
     request: RequestOTP,
     use_case: RequestOTPUseCase = Depends(get_request_otp_use_case)
 ):
     try:
-        session_id = use_case.execute(raw_phone_number=request.phone)
+        session_id = await use_case.execute(raw_phone_number=request.phone)
         return ResponseOTP(session_id=str(session_id))
     
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.post("/verify/user", response_model=TokenResponse)
-def verify_user_otp(
+async def verify_user_otp(
     request: VerifyOTPRequest,
     use_case = Depends(get_verify_user_otp_use_case)
 ):
     try:
-        tokens = use_case.execute(session_id=request.session_id, input_code=request.code)
+        tokens = await use_case.execute(session_id=request.session_id, input_code=request.code)
         return TokenResponse(
             access_token=tokens["access_token"],
             refresh_token=tokens["refresh_token"]
@@ -52,12 +52,12 @@ def verify_user_otp(
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.post("/verify/courier", response_model=TokenResponse)
-def verify_courier_otp(
+async def verify_courier_otp(
     request: VerifyOTPRequest,
     use_case = Depends(get_verify_courier_otp_use_case)
 ):
     try:
-        tokens = use_case.execute(session_id=request.session_id, input_code=request.code)
+        tokens = await use_case.execute(session_id=request.session_id, input_code=request.code)
         return TokenResponse(
             access_token=tokens["access_token"],
             refresh_token=tokens["refresh_token"]
@@ -67,12 +67,12 @@ def verify_courier_otp(
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(
+async def refresh_token(
     request: RefreshRequest,
     use_case: RefreshSessionUseCase = Depends(get_refresh_session_use_case)
 ):
     try:
-        tokens = use_case.execute(raw_refresh_token=request.refresh_token)
+        tokens = await use_case.execute(raw_refresh_token=request.refresh_token)
         
         return TokenResponse(
             access_token=tokens["access_token"],
@@ -83,12 +83,12 @@ def refresh_token(
     
 
 @router.post("/logout")
-def logout(
+async def logout(
     request: LogoutRequest,
     use_case: LogoutUseCase = Depends(get_logout_use_case)
 ):
     try:
-        use_case.execute(raw_refresh_token=request.refresh_token)
+        await use_case.execute(refresh_token=request.refresh_token)
     except DomainException:
         pass
     
@@ -97,12 +97,12 @@ def logout(
 
 
 @router.get("/users/me", response_model=UserProfileResponse)
-def get_user_profile(
+async def get_user_profile(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_user_profile_use_case)
 ):
     try:
-        profile = use_case.execute(profile_id=account.id)
+        profile = await use_case.execute(profile_id=account.id)
         return profile
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -110,13 +110,13 @@ def get_user_profile(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.patch("/users/me", response_model=UserProfileResponse)
-def update_user_profile(
+async def update_user_profile(
     data: UpdateUserProfileRequest,
     account: Account = Depends(get_current_account),
     use_case = Depends(get_update_user_profile_use_case)
 ):
     try:
-        profile = use_case.execute(
+        profile = await use_case.execute(
             account_id=account.id, 
             name=data.name, 
             address=data.address
@@ -128,24 +128,24 @@ def update_user_profile(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.delete("/users/me", status_code=204)
-def delete_user_account(
+async def delete_user_account(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_delete_user_use_case)
 ):
     try:
-        use_case.execute(account_id=account.id)
+        await use_case.execute(account_id=account.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
 @router.get("/couriers/me", response_model=CourierProfileResponse)
-def get_courier_profile(
+async def get_courier_profile(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_courier_profile_use_case)
 ):
     try:
-        profile = use_case.execute(account_id=account.id)
+        profile = await use_case.execute(account_id=account.id)
         return profile
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -153,13 +153,13 @@ def get_courier_profile(
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
 @router.patch("/couriers/me", response_model=CourierProfileResponse)
-def update_courier_profile(
+async def update_courier_profile(
     data: UpdateCourierProfileRequest,
     account: Account = Depends(get_current_account),
     use_case = Depends(get_update_courier_profile_use_case)
 ):
     try:
-        profile = use_case.execute(account_id=account.id, name=data.name)
+        profile = await use_case.execute(account_id=account.id, name=data.name)
         return profile
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -168,12 +168,12 @@ def update_courier_profile(
 
 
 @router.delete("/couriers/me", status_code=204)
-def delete_courier_account(
+async def delete_courier_account(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_delete_courier_use_case)
 ):
     try:
-        use_case.execute(account_id=account.id)
+        await use_case.execute(account_id=account.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:

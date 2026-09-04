@@ -7,7 +7,7 @@ class SmsSenderPublisher:
         self.api_key = api_key
         self.base_url = base_url
 
-    def send_sms(self, payload: dict[str, Any]) -> None:
+    async def send_sms(self, payload: dict[str, Any]) -> None:
         phone_number = payload["phone_number"]
         code = payload["code"]
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")       
