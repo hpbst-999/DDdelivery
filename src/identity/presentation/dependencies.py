@@ -1,9 +1,9 @@
-from fastapi import Depends,HTTPException, Header
+from fastapi import Depends,HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import redis
 from src.core.database import SessionFactory
 from src.identity.domain.entities.account import Account
-from src.identity.application.interfaces import IUnitOfWork
+from src.identity.application.interfaces import IUnitOfWork, IOAuthService
 from src.identity.application.use_cases.request_otp import RequestOTPUseCase
 from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
 from src.identity.application.use_cases.logout import LogoutUseCase
@@ -15,16 +15,18 @@ from src.identity.application.use_cases.delete_courier import DeleteCourierUseCa
 from src.identity.application.use_cases.delete_user import DeleteUserUseCase
 from src.identity.application.use_cases.get_courier_profile import GetCourierProfileUseCase
 from src.identity.application.use_cases.get_user_profile import GetUserProfileUseCase
+from src.identity.application.use_cases.login_courier_oauth import LoginCourierWithOAuthUseCase
+from src.identity.application.use_cases.login_user_oauth import LoginUserWithOAuthUseCase
 from src.identity.infrastructure.uow import SQLAlchemyUnitOfWork
 # from src.identity.infrastructure.uow import RedisUnitOfWork
 # from src.identity.infrastructure.sms_service import SmsSender
 from src.identity.infrastructure.security_jwt import JwtTokenService
 from src.core.config import settings
-from typing import Iterator
-from sqlalchemy.orm import Session
 from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+from src.identity.infrastructure.google_service import GoogleOAuthService
+from src.identity.infrastructure.yandex_service import YandexOAuthService
 
 redis_client = redis.Redis(
     host=settings.REDIS_HOST, 
@@ -145,3 +147,23 @@ async def get_current_account(
             raise HTTPException(status_code=401, detail="Account not found")
         
         return account
+
+def get_google_oauth_service() -> IOAuthService:
+    return GoogleOAuthService()
+
+
+def get_yandex_oauth_service() -> IOAuthService:
+    return YandexOAuthService()
+
+def get_login_user_use_case(
+    uow: IUnitOfWork = Depends(get_pg_uow),
+    token_service: JwtTokenService = Depends(get_token_service),
+) -> LoginUserWithOAuthUseCase:
+    return LoginUserWithOAuthUseCase(uow=uow, token_service=token_service)
+
+
+def get_login_courier_use_case(
+    uow: IUnitOfWork = Depends(get_pg_uow),
+    token_service: JwtTokenService = Depends(get_token_service),
+) -> LoginCourierWithOAuthUseCase:
+    return LoginCourierWithOAuthUseCase(uow=uow, token_service=token_service)

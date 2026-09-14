@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from src.identity.domain.exceptions import DomainException
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.user_profile import UserProfile
@@ -7,6 +7,10 @@ from src.identity.presentation.api.schemas import RequestOTP,UpdateUserProfileRe
 from src.identity.application.use_cases.request_otp import RequestOTPUseCase
 from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
 from src.identity.application.use_cases.logout import LogoutUseCase
+from src.identity.application.interfaces import IOAuthService
+from src.identity.application.use_cases.login_user_oauth import LoginUserWithOAuthUseCase
+from src.identity.application.use_cases.login_courier_oauth import LoginCourierWithOAuthUseCase
+
 from src.identity.presentation.dependencies import (
     get_request_otp_use_case,
     get_verify_user_otp_use_case,
@@ -19,7 +23,11 @@ from src.identity.presentation.dependencies import (
     get_update_courier_profile_use_case,
     get_delete_user_use_case,
     get_delete_courier_use_case,
-    get_current_account
+    get_current_account,
+    get_google_oauth_service,
+    get_login_courier_use_case,
+    get_login_user_use_case,
+    get_yandex_oauth_service,
 )
 
 router = APIRouter(tags=["Authentication"])
@@ -96,7 +104,7 @@ async def logout(
 
 
 
-@router.get("/users/me", response_model=UserProfileResponse)
+@router.get("/user/me", response_model=UserProfileResponse)
 async def get_user_profile(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_user_profile_use_case)
@@ -109,7 +117,7 @@ async def get_user_profile(
     except Exception :
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@router.patch("/users/me", response_model=UserProfileResponse)
+@router.patch("/user/me", response_model=UserProfileResponse)
 async def update_user_profile(
     data: UpdateUserProfileRequest,
     account: Account = Depends(get_current_account),
@@ -127,7 +135,7 @@ async def update_user_profile(
     except Exception :
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@router.delete("/users/me", status_code=204)
+@router.delete("/user/me", status_code=204)
 async def delete_user_account(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_delete_user_use_case)
@@ -139,7 +147,7 @@ async def delete_user_account(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
-@router.get("/couriers/me", response_model=CourierProfileResponse)
+@router.get("/courier/me", response_model=CourierProfileResponse)
 async def get_courier_profile(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_courier_profile_use_case)
@@ -152,7 +160,7 @@ async def get_courier_profile(
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
-@router.patch("/couriers/me", response_model=CourierProfileResponse)
+@router.patch("/courier/me", response_model=CourierProfileResponse)
 async def update_courier_profile(
     data: UpdateCourierProfileRequest,
     account: Account = Depends(get_current_account),
@@ -167,7 +175,7 @@ async def update_courier_profile(
         raise HTTPException(status_code=500,detail="Internal Server Error")
 
 
-@router.delete("/couriers/me", status_code=204)
+@router.delete("/courier/me", status_code=204)
 async def delete_courier_account(
     account: Account = Depends(get_current_account),
     use_case = Depends(get_delete_courier_use_case)
@@ -178,3 +186,137 @@ async def delete_courier_account(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/user/google/url")
+def get_user_google_url(
+    redirect_uri: str = Query(..., description="Callback URL"),
+    oauth_service: IOAuthService = Depends(get_google_oauth_service),
+):
+    url = oauth_service.get_authorization_url(
+        redirect_uri=redirect_uri, state="csrf_token"
+    )
+    return {"url": url}
+
+
+@router.get("/user/google/callback")
+async def user_google_callback(
+    code: str = Query("http://localhost:8000/api/v1/auth/user/google/callback", description="code Google"),
+    state: str | None = Query(None),
+    oauth_service: IOAuthService = Depends(get_google_oauth_service),
+    use_case: LoginUserWithOAuthUseCase = Depends(get_login_user_use_case),
+):
+    try:
+        user_info = await oauth_service.get_user_info(code, "http://localhost:8000/api/v1/auth/user/google/callback")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Google auth failed: {exc}",
+        )
+    return await use_case.execute(user_info)
+
+@router.get("/callback")
+def google_callback():
+    return {"message": "Успешный вход через Google"}
+
+@router.get("/user/yandex/url")
+def get_yandex_auth_url(
+    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/user/yandex/callback", description="Callback URL"),
+    oauth_service: IOAuthService = Depends(get_yandex_oauth_service),
+):
+    url = oauth_service.get_authorization_url(
+        redirect_uri=redirect_uri, state="dev_state"
+    )
+    return {"url": url}
+
+
+@router.get("/user/yandex/callback")
+async def yandex_callback(
+    code: str = Query(..., description="code yandex"),
+    state: str | None = Query(None),
+    oauth_service: IOAuthService = Depends(get_yandex_oauth_service),
+    use_case: LoginUserWithOAuthUseCase = Depends(get_login_user_use_case),
+):
+    try:
+        user_info = await oauth_service.get_user_info(
+            code=code, redirect_uri="http://localhost:8000/api/v1/auth/user/google/callback"
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Yandex auth failed: {exc}",
+        )
+
+    return await use_case.execute(user_info)
+
+@router.get("/courier/google/url")
+def get_courier_google_auth_url(
+    redirect_uri: str = Query(
+        "http://localhost:8000/api/v1/auth/courier/google/callback",
+        description="Callback URL",
+    ),
+    oauth_service: IOAuthService = Depends(get_google_oauth_service),
+):
+    url = oauth_service.get_authorization_url(
+        redirect_uri=redirect_uri, state="courier_dev_state"
+    )
+    return {"url": url}
+
+
+@router.get("/courier/google/callback")
+async def courier_google_callback(
+    code: str = Query(..., description="Authorization code от Google"),
+    state: str | None = Query(None),
+    oauth_service: IOAuthService = Depends(get_google_oauth_service),
+    use_case: LoginCourierWithOAuthUseCase = Depends(
+        get_login_courier_use_case
+    ),
+):
+    try:
+        user_info = await oauth_service.get_user_info(
+            code=code,
+            redirect_uri="http://localhost:8000/api/v1/auth/courier/google/callback",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Google courier auth failed: {exc}",
+        )
+
+    return await use_case.execute(user_info)
+
+@router.get("/courier/yandex/url")
+def get_courier_yandex_auth_url(
+    redirect_uri: str = Query(
+        "http://localhost:8000/api/v1/auth/courier/yandex/callback",
+        description="Callback URL для курьера",
+    ),
+    oauth_service: IOAuthService = Depends(get_yandex_oauth_service),
+):
+    url = oauth_service.get_authorization_url(
+        redirect_uri=redirect_uri, state="courier_dev_state"
+    )
+    return {"url": url}
+
+
+@router.get("/courier/yandex/callback")
+async def courier_yandex_callback(
+    code: str = Query(..., description="Authorization code от Яндекса"),
+    state: str | None = Query(None),
+    oauth_service: IOAuthService = Depends(get_yandex_oauth_service),
+    use_case: LoginCourierWithOAuthUseCase = Depends(
+        get_login_courier_use_case
+    ),
+):
+    try:
+        user_info = await oauth_service.get_user_info(
+            code=code,
+            redirect_uri="http://localhost:8000/api/v1/auth/courier/yandex/callback",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Yandex courier auth failed: {exc}",
+        )
+
+    return await use_case.execute(user_info)

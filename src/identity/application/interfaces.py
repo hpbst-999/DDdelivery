@@ -8,6 +8,8 @@ from src.identity.domain.entities.courier_profile import CourierProfile
 from src.identity.domain.entities.user_profile import UserProfile
 from datetime import datetime
 from src.outbox.application.interfaces import IOutboxRepository
+from src.identity.application.dtos.oauth_user import OAuthUser
+
 class IOTPRepository(Protocol):
     async def save_otp(self, otp: OTP) -> None:
         ...
@@ -98,5 +100,10 @@ class IUnitOfWork(Protocol):
     async def rollback(self):
         ...
 
+class IOAuthService(Protocol):
+    def get_authorization_url(self, redirect_uri: str, state: str) -> str:
+        ...
 
+    async def get_user_info(self, code: str, redirect_uri: str) -> OAuthUser:
+        ...
 
