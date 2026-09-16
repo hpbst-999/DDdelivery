@@ -1,10 +1,12 @@
-from src.identity.application.interfaces import IUnitOfWork,ITokenService, TokenPair
-from src.identity.domain.exceptions import InvalidOTPCodeError, DomainException
-from src.identity.domain.value_objects.enums import AccountRole
-from src.identity.domain.entities.account import Account
-from src.identity.domain.entities.courier_profile import CourierProfile
 import uuid
 from datetime import datetime, timedelta, timezone
+
+from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
+from src.identity.domain.entities.account import Account
+from src.identity.domain.entities.courier_profile import CourierProfile
+from src.identity.domain.exceptions import DomainException, InvalidOTPCodeError
+from src.identity.domain.value_objects.enums import AccountRole
+
 
 class VerifyOTPUAndCreateCourierUseCase:
     

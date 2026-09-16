@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 from src.core.config import settings
+from redis.asyncio import Redis
 
 engine:AsyncEngine = create_async_engine(
     url=settings.database_url, 
@@ -40,3 +41,10 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+redis_client = Redis(
+    host=settings.REDIS_HOST, 
+    port=settings.REDIS_PORT, 
+    db=settings.REDIS_DB,
+    decode_responses=True
+)

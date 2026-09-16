@@ -1,6 +1,8 @@
 import uuid
+
 from src.identity.domain.value_objects.coordinates import Coordinates
 from src.identity.domain.value_objects.enums import CourierStatus
+
 
 class CourierProfile:
     def __init__(

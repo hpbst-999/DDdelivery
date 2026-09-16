@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from sqlalchemy import String, Integer, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+
 from src.core.database import Base
+
 
 class OutboxMessageModel(Base):
     __tablename__ = "outbox_message"

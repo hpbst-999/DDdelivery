@@ -1,5 +1,6 @@
 from src.outbox.application.interfaces import IOutboxUnitOfWork, IMessagePublisher
 
+
 class ProcessOutboxBatchUseCase:
     def __init__(self, uow: IOutboxUnitOfWork, publisher: IMessagePublisher, batch_size: int = 10):
         self.uow = uow

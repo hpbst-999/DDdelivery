@@ -1,6 +1,6 @@
 from src.identity.application.interfaces import IUnitOfWork
-from src.identity.domain.exceptions import ProfileNotFoundError
 from src.identity.domain.entities.courier_profile import CourierProfile
+from src.identity.domain.exceptions import ProfileNotFoundError
 
 class UpdateCourierProfileUseCase:
     

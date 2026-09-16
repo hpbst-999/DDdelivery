@@ -1,8 +1,10 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
 from src.outbox.infrastructure.models import OutboxMessageModel
 from src.outbox.domain.outbox_message import OutboxMessage
 from src.outbox.domain.enum import OutboxStatus
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+
 
 class SQLAlchemyOutboxRepository:
     def __init__(self, session:AsyncSession):

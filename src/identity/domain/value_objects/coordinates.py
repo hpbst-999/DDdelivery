@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+
 from src.identity.domain.exceptions import InvalidCoordinatesError
+
 
 @dataclass(frozen=True)
 class Coordinates:

@@ -1,32 +1,43 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from src.identity.domain.exceptions import DomainException
-from src.identity.domain.entities.account import Account
-from src.identity.domain.entities.user_profile import UserProfile
-from src.identity.domain.entities.courier_profile import CourierProfile
-from src.identity.presentation.api.schemas import RequestOTP,UpdateUserProfileRequest,UpdateCourierProfileRequest ,ResponseOTP,CourierProfileResponse, UserProfileResponse, VerifyOTPRequest, TokenResponse, RefreshRequest, LogoutRequest
-from src.identity.application.use_cases.request_otp import RequestOTPUseCase
-from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
-from src.identity.application.use_cases.logout import LogoutUseCase
-from src.identity.application.interfaces import IOAuthService
-from src.identity.application.use_cases.login_user_oauth import LoginUserWithOAuthUseCase
-from src.identity.application.use_cases.login_courier_oauth import LoginCourierWithOAuthUseCase
 
+from src.identity.application.interfaces import IOAuthService
+from src.identity.application.use_cases.login_courier_oauth import LoginCourierWithOAuthUseCase
+from src.identity.application.use_cases.login_user_oauth import LoginUserWithOAuthUseCase
+from src.identity.application.use_cases.logout import LogoutUseCase
+from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
+from src.identity.application.use_cases.request_otp import RequestOTPUseCase
+from src.identity.domain.entities.account import Account
+from src.identity.domain.entities.courier_profile import CourierProfile
+from src.identity.domain.entities.user_profile import UserProfile
+from src.identity.domain.exceptions import DomainException
+from src.identity.presentation.api.schemas import (
+    CourierProfileResponse,
+    LogoutRequest,
+    RefreshRequest,
+    RequestOTP,
+    ResponseOTP,
+    TokenResponse,
+    UpdateCourierProfileRequest,
+    UpdateUserProfileRequest,
+    UserProfileResponse,
+    VerifyOTPRequest,
+)
 from src.identity.presentation.dependencies import (
-    get_request_otp_use_case,
-    get_verify_user_otp_use_case,
-    get_verify_courier_otp_use_case,
-    get_refresh_session_use_case,
-    get_logout_use_case,
     get_courier_profile_use_case,
-    get_user_profile_use_case,
-    get_update_user_profile_use_case,
-    get_update_courier_profile_use_case,
-    get_delete_user_use_case,
-    get_delete_courier_use_case,
     get_current_account,
+    get_delete_courier_use_case,
+    get_delete_user_use_case,
     get_google_oauth_service,
     get_login_courier_use_case,
     get_login_user_use_case,
+    get_logout_use_case,
+    get_refresh_session_use_case,
+    get_request_otp_use_case,
+    get_update_courier_profile_use_case,
+    get_update_user_profile_use_case,
+    get_user_profile_use_case,
+    get_verify_courier_otp_use_case,
+    get_verify_user_otp_use_case,
     get_yandex_oauth_service,
 )
 

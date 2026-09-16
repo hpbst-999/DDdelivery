@@ -1,5 +1,7 @@
 import re
+
 from src.identity.domain.exceptions import InvalidPhoneNumberError
+
 
 class PhoneNumber(str):
     def __new__(cls, value: str):

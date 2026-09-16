@@ -1,12 +1,14 @@
-from sqlalchemy import String, Integer, Boolean, DateTime
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from src.identity.domain.value_objects.enums import CourierStatus
-from geoalchemy2 import Geometry
-from src.core.database import Base
-from sqlalchemy.orm import Mapped, mapped_column
 import uuid
 from datetime import datetime
 from typing import Any
+
+from geoalchemy2 import Geometry
+from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.core.database import Base
+from src.identity.domain.value_objects.enums import CourierStatus
 
 
 class AccountModel(Base):

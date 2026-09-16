@@ -1,7 +1,9 @@
 import uuid
 from typing import Any
 from datetime import datetime, timezone
+
 from src.outbox.domain.enum import OutboxStatus
+
 
 class OutboxMessage:
     def __init__(self, 

@@ -1,7 +1,9 @@
 import uuid
+
 from src.identity.application.interfaces import IUnitOfWork
 from src.identity.domain.exceptions import AccountNotFoundError, DomainException
 from src.identity.domain.value_objects.enums import AccountRole
+
 
 class DeleteCourierUseCase:
     

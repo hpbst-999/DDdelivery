@@ -1,18 +1,26 @@
 import uuid
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from shapely.geometry import Point
+
 from geoalchemy2.shape import from_shape, to_shape
-from src.identity.domain.entities.OTP import OTP
+from shapely.geometry import Point
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.courier_profile import CourierProfile
+from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.entities.user_profile import UserProfile
-from src.identity.domain.value_objects.enums import CourierStatus, AccountRole
-from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.value_objects.coordinates import Coordinates
 from src.identity.domain.value_objects.email import Email
-from src.identity.infrastructure.models import AccountModel, UserProfileModel, CourierProfileModel, OTPModel, RefreshTokenModel
+from src.identity.domain.value_objects.enums import AccountRole, CourierStatus
+from src.identity.domain.value_objects.phone_number import PhoneNumber
+from src.identity.infrastructure.models import (
+    AccountModel,
+    CourierProfileModel,
+    OTPModel,
+    RefreshTokenModel,
+    UserProfileModel,
+)
 
 
 class SQLAlchemyAccountRepository:

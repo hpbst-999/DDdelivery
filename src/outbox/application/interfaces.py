@@ -1,5 +1,7 @@
 from typing import Any, Protocol, Self
+
 from src.outbox.domain.outbox_message import OutboxMessage
+
 
 class IOutboxRepository(Protocol):
     async def add(self, message: OutboxMessage) -> None:

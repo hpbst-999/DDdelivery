@@ -1,96 +1,32 @@
-# import json
-# import redis
-# from src.identity.application.interfaces import ISessionRepository
+import json
+from redis.asyncio import Redis
+from typing import Any
+
+from src.identity.application.interfaces import ICacheRepository
 
 
-# class RedisSessionRepository(ISessionRepository):
-#     def __init__(self, redis_client: redis.Redis):
-#         self.redis = redis_client
+class RedisCacheRepository(ICacheRepository):
+    def __init__(self, redis_client: Redis):
+        self.redis = redis_client
 
-#     def save_refresh_token(self, session_id: str, account_id: str, refresh_token: str, expires_days: int) -> None:
-#         data = {
-#             "session_id": session_id,
-#             "account_id": account_id,
-#             "token": refresh_token,
-#         }
-#         ttl_seconds = expires_days * 24 * 60 * 60
+    async def get(self, key:str) -> Any | None:
+        data = await self.redis.get(key)
+        if not data:
+            return None
 
-#         self.redis.setex(f"session:{session_id}", ttl_seconds, json.dumps(data))
-#         self.redis.setex(f"token_index:{refresh_token}", ttl_seconds, session_id)
-
-#     def get_data_by_token(self, refresh_token: str) -> dict | None:
-#         session_id_bytes = self.redis.get(f"token_index:{refresh_token}")
-#         if not session_id_bytes:
-#             return None
-
-#         session_id = session_id_bytes.decode("utf-8")
-
-#         data_bytes = self.redis.get(f"session:{session_id}")
-#         if not data_bytes:
-#             return None
-
-#         return json.loads(data_bytes)
-
-#     def delete_session(self, session_id: str) -> None:
-#         data_bytes = self.redis.get(f"session:{session_id}")
-#         if not data_bytes:
-#             return
-
-#         data = json.loads(data_bytes)
-
-#         self.redis.delete(f"token_index:{data['token']}")
-#         self.redis.delete(f"session:{session_id}")
-
-
-# class RedisOTPRepository(IOTPRepository):
-#     def __init__(self, redis_client: redis.Redis):
-#         self.redis = redis_client
-
-#     def save_otp(self, otp: OTP) -> None:
-#         ttl = int((otp.expires_at - datetime.now(timezone.utc)).total_seconds())
-#         if ttl <= 0:
-#             return 
-
-#         data = {
-#             "session_id": otp.session_id,
-#             "phone": otp.phone_number.value,
-#             "code": otp.code,
-#             "expires_at": otp.expires_at.isoformat()
-#         }
-#         with self.redis.pipeline() as pipe:
-#             self.redis.setex(f"otp:{otp.session_id}", ttl, json.dumps(data))
-#             self.redis.setex(f"otp_phone:{otp.phone_number.value}", ttl, otp.session_id)
-#             pipe.execute()
-
-#     def get_otp_by_session(self, session_id: str) -> Optional[OTP]:
-#         data_bytes = self.redis.get(f"otp:{session_id}")
-#         if not data_bytes:
-#             return None
-            
-#         data = json.loads(data_bytes)
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError:
+            return data
         
-#         return OTP(
-#             session_id=data["session_id"],
-#             phone_number=PhoneNumber(data["phone"]),
-#             code=data["code"],
-#             expires_at=datetime.fromisoformat(data["expires_at"])
-#         )
+    async def set(self, key: str, value:Any, ttl_second: int = 600) -> None:
+        json_data = json.dumps(value, default=str)
+        await self.redis.set(key, json_data, ex=ttl_second)
 
-#     def delete_otp_by_session(self, session_id: str) -> None:
-#         data_bytes = self.redis.get(f"otp:{session_id}")
-#         if not data_bytes:
-#             return
-#         data = json.loads(data_bytes)
-#         with self.redis.pipeline() as pipe:
-#             self.redis.delete(f"otp_phone:{data['phone']}")
-#             self.redis.delete(f"otp:{session_id}")
-#             pipe.execute()
+    async def delete(self, key: str) -> None:
+        await self.redis.delete(key)
+        
 
-#     def delete_otp_by_phone(self, phone: PhoneNumber) -> None:
-#         session_id_bytes = self.redis.get(f"otp_phone:{phone.value}")
-#         if session_id_bytes:
-#             session_id = session_id_bytes.decode('utf-8')
-#             with self.redis.pipeline() as pipe:
-#                 self.redis.delete(f"otp:{session_id}")
-#                 self.redis.delete(f"otp_phone:{phone.value}")
-#                 pipe.execute()
+
+
+

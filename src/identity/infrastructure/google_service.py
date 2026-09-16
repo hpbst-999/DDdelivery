@@ -1,8 +1,10 @@
 import urllib.parse
 import httpx
+
 from src.core.config import settings
 from src.identity.application.interfaces import IOAuthService
 from src.identity.application.dtos.oauth_user import OAuthUser
+
 
 class GoogleOAuthService(IOAuthService):
     AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"

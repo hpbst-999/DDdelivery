@@ -1,4 +1,3 @@
-from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.outbox.infrastructure.postgres_repository import SQLAlchemyOutboxRepository
 

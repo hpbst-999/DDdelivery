@@ -1,9 +1,11 @@
-from src.identity.domain.value_objects.phone_number import PhoneNumber
-from src.identity.domain.entities.OTP import OTP
-from src.identity.application.interfaces import IUnitOfWork
-from src.identity.domain.exceptions import OTPRateLimitError
-from src.outbox.domain.outbox_message import OutboxMessage
 import uuid
+
+from src.identity.application.interfaces import IUnitOfWork
+from src.identity.domain.entities.OTP import OTP
+from src.identity.domain.exceptions import OTPRateLimitError
+from src.identity.domain.value_objects.phone_number import PhoneNumber
+from src.outbox.domain.outbox_message import OutboxMessage
+
 
 class RequestOTPUseCase:
     def __init__(self, uow: IUnitOfWork):

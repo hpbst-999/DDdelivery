@@ -1,14 +1,16 @@
 import uuid
-from typing import TypedDict, Protocol
-from src.identity.domain.entities.OTP import OTP
-from src.identity.domain.value_objects.phone_number import PhoneNumber
-from src.identity.domain.value_objects.email import Email
+from datetime import datetime
+from typing import Protocol, TypedDict, Any
+
+from src.identity.application.dtos.oauth_user import OAuthUser
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.courier_profile import CourierProfile
+from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.entities.user_profile import UserProfile
-from datetime import datetime
+from src.identity.domain.value_objects.email import Email
+from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.outbox.application.interfaces import IOutboxRepository
-from src.identity.application.dtos.oauth_user import OAuthUser
+
 
 class IOTPRepository(Protocol):
     async def save_otp(self, otp: OTP) -> None:
@@ -103,7 +105,15 @@ class IUnitOfWork(Protocol):
 class IOAuthService(Protocol):
     def get_authorization_url(self, redirect_uri: str, state: str) -> str:
         ...
-
     async def get_user_info(self, code: str, redirect_uri: str) -> OAuthUser:
         ...
 
+class ICacheRepository:
+    async def get(self, key:str) -> Any | None:
+        ...
+    async def set(self, key: str, value:Any, ttl_second: int = 600) -> None:
+        ...
+    async def delete(self, key: str) -> None:
+        ...
+    
+    

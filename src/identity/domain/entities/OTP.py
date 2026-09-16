@@ -1,12 +1,14 @@
 import uuid
 import random
 from datetime import datetime, timedelta, timezone
+
 from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.exceptions import (
     OTPExpiredError,
     OTPMaxAttemptsExceededError,
     InvalidOTPCodeError
 )
+
 
 class OTP:
     def __init__(self, session_id: uuid.UUID, phone_number: PhoneNumber, code: str, 

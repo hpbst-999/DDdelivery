@@ -1,11 +1,13 @@
 import uuid
+from datetime import datetime, timedelta, timezone
+
 from src.identity.application.dtos.oauth_user import OAuthUser
-from src.identity.application.interfaces import IUnitOfWork,ITokenService, TokenPair
+from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.courier_profile import CourierProfile
 from src.identity.domain.value_objects.email import Email
 from src.identity.domain.value_objects.enums import AccountRole
-from datetime import datetime, timedelta, timezone
+
 
 class LoginCourierWithOAuthUseCase:
     def __init__(self, uow: IUnitOfWork,token_service: ITokenService):

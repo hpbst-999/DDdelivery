@@ -1,5 +1,6 @@
 import urllib.parse
 import httpx
+
 from src.core.config import settings
 from src.identity.application.dtos.oauth_user import OAuthUser
 from src.identity.application.interfaces import IOAuthService

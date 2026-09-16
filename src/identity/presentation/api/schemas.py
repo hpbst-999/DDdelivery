@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
-from src.identity.domain.value_objects.enums import CourierStatus
 import uuid
+
+from src.identity.domain.value_objects.enums import CourierStatus
+
 
 
 class RequestOTP(BaseModel):

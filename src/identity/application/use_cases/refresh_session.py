@@ -1,7 +1,10 @@
 import uuid
-from src.identity.domain.exceptions import DomainException, SessionNotFoundError
-from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
 from datetime import datetime, timedelta, timezone
+
+from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
+from src.identity.domain.exceptions import DomainException, SessionNotFoundError
+
+
 class RefreshSessionUseCase:
     def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
         self.uow = uow

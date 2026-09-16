@@ -1,5 +1,7 @@
 import re
+
 from src.identity.domain.exceptions import InvalidEmailError
+
     
 class Email(str):
     def __new__(cls, value: str):

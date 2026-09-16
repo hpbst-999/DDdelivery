@@ -1,5 +1,6 @@
 from src.identity.application.interfaces import IUnitOfWork
 
+
 class LogoutUseCase:
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow 
