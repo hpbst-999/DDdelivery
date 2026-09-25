@@ -1,12 +1,12 @@
 import urllib.parse
 import httpx
+import secrets
 
 from src.core.config import settings
 from src.identity.application.dtos.oauth_user import OAuthUser
-from src.identity.application.interfaces import IOAuthService
 
 
-class YandexOAuthService(IOAuthService):
+class YandexOAuthService:
     AUTH_URL = "https://oauth.yandex.ru/authorize"
     TOKEN_URL = "https://oauth.yandex.ru/token"
     USERINFO_URL = "https://login.yandex.ru/info"
@@ -19,17 +19,20 @@ class YandexOAuthService(IOAuthService):
         self._client_id = client_id
         self._client_secret = client_secret
 
-    def get_authorization_url(self, redirect_uri: str, state: str) -> str:
+    def get_authorization_url(self) -> str:
+        callback_uri = settings.CALLBACK_URI+f"/yandex/callback"
+
         params = {
             "response_type": "code",
             "client_id": self._client_id,
-            "redirect_uri": redirect_uri,
-            "state": state,
+            "redirect_uri": callback_uri,
+            "state": secrets.token_urlsafe(16),
             "force_confirm": "yes"
         }
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
 
-    async def get_user_info(self, code: str, redirect_uri: str) -> OAuthUser:
+    async def get_user_info(self, code: str) -> OAuthUser:
+        callback_uri = settings.CALLBACK_URI+f"/yandex/callback"
         async with httpx.AsyncClient(timeout=10.0) as client:
             token_response = await client.post(
                 self.TOKEN_URL,
@@ -37,7 +40,8 @@ class YandexOAuthService(IOAuthService):
                     "grant_type": "authorization_code",
                     "code": code,
                     "client_id": self._client_id,
-                    "client_secret": self._client_secret
+                    "client_secret": self._client_secret,
+                    "redirect_uri": callback_uri
                 }
             )
             token_response.raise_for_status()

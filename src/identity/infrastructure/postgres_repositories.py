@@ -1,25 +1,20 @@
 import uuid
 from datetime import datetime
 
-from geoalchemy2.shape import from_shape, to_shape
-from shapely.geometry import Point
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.identity.domain.entities.account import Account
-from src.identity.domain.entities.courier_profile import CourierProfile
 from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.entities.user_profile import UserProfile
-from src.identity.domain.value_objects.coordinates import Coordinates
 from src.identity.domain.value_objects.email import Email
-from src.identity.domain.value_objects.enums import AccountRole, CourierStatus
 from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.infrastructure.models import (
     AccountModel,
-    CourierProfileModel,
     OTPModel,
     RefreshTokenModel,
-    UserProfileModel,
+    UserProfileModel
 )
 
 
@@ -30,12 +25,11 @@ class SQLAlchemyAccountRepository:
     def _to_entity(self, model: AccountModel) -> Account:
         return Account(
             id=model.id,
-            roles=[AccountRole(r) for r in model.roles],
             phone_number=PhoneNumber(model.phone_number) if model.phone_number else None,
             email=Email(model.email) if model.email else None)
 
-    async def get_account_by_id(self, account_id: uuid.UUID) -> Account | None:
-        stmt = select(AccountModel).where(AccountModel.id == account_id)
+    async def get_account_by_id(self, id: uuid.UUID) -> Account | None:
+        stmt = select(AccountModel).where(AccountModel.id == id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
 
@@ -67,7 +61,6 @@ class SQLAlchemyAccountRepository:
     async def add_account(self, account: Account) -> None:
         model = AccountModel(
             id=account.id,
-            roles=[role.value for role in account.roles],
             phone_number=account.phone_number if account.phone_number else None,
             email=account.email if account.email else None
         )
@@ -80,12 +73,11 @@ class SQLAlchemyAccountRepository:
         model = result.one_or_none()
 
         if model:
-            model.roles = [role.value for role in account.roles]
             model.phone_number = account.phone_number if account.phone_number else None
             model.email = account.email if account.email else None
 
-    async def delete_account(self, account_id: uuid.UUID) -> None:
-        stmt = select(AccountModel).where(AccountModel.id == account_id)
+    async def delete_account(self, id: uuid.UUID) -> None:
+        stmt = select(AccountModel).where(AccountModel.id == id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
 
@@ -101,11 +93,12 @@ class SQLAlchemyUserProfileRepository:
     def _to_entity(self, model: UserProfileModel) -> UserProfile:
         return UserProfile(
             id=model.id,
+            account_id=model.account_id,
             name=model.name,
             address=model.address)
 
-    async def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
-        stmt = select(UserProfileModel).where(UserProfileModel.id == profile_id)
+    async def get_user_by_id(self, id: uuid.UUID) -> UserProfile | None:
+        stmt = select(UserProfileModel).where(UserProfileModel.id == id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
 
@@ -117,6 +110,7 @@ class SQLAlchemyUserProfileRepository:
     async def add_user(self, profile: UserProfile) -> None:
         model = UserProfileModel(
             id=profile.id, 
+            account_id = profile.account_id,
             name=profile.name,
             address=profile.address
         )
@@ -133,8 +127,8 @@ class SQLAlchemyUserProfileRepository:
             model.address = profile.address
 
 
-    async def delete_user(self, profile_id: uuid.UUID) -> None:
-        stmt = select(UserProfileModel).where(UserProfileModel.id == profile_id)
+    async def delete_user(self, id: uuid.UUID) -> None:
+        stmt = select(UserProfileModel).where(UserProfileModel.id == id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
 
@@ -142,71 +136,6 @@ class SQLAlchemyUserProfileRepository:
             await self.session.delete(model)
             await self.session.flush()
 
-
-class SQLAlchemyCourierProfileRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    def _to_entity(self, model: CourierProfileModel, coords: Coordinates) -> CourierProfile:
-        return CourierProfile(
-            id=model.id,
-            name=model.name,
-            status=CourierStatus(model.status),
-            coordinates=coords
-        )
-
-    async def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:
-        stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile_id)
-        result = await self.session.scalars(stmt)
-        model = result.one_or_none()
-
-        if not model:
-            return None
-            
-        coords = None
-        if model.coordinates is not None:
-            shapely_point = to_shape(model.coordinates)
-            coords = Coordinates(lat=shapely_point.y, lon=shapely_point.x)
-
-        return self._to_entity(model=model, coords=coords)
-
-    async def add_courier(self, profile: CourierProfile) -> None:
-        db_point = None
-        if profile.coordinates:
-            pt = Point(profile.coordinates.lon, profile.coordinates.lat)
-            db_point = from_shape(pt, srid=4326)
-
-        model = CourierProfileModel(
-            id=profile.id,
-            name=profile.name,
-            status=profile.status,
-            coordinates=db_point
-        )
-        self.session.add(model)
-        await self.session.flush()
-
-    async def update_courier(self, profile: CourierProfile) -> None:
-        stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile.id)
-        result = await self.session.scalars(stmt)
-        model = result.one_or_none()
-
-        if model:
-            model.name = profile.name
-            model.status = profile.status
-            
-            if profile.coordinates:
-                pt = Point(profile.coordinates.lon, profile.coordinates.lat)
-                model.coordinates = from_shape(pt, srid=4326)
-            else:
-                model.coordinates = None
-
-    async def delete_courier(self, profile_id: uuid.UUID) -> None:
-        stmt = select(CourierProfileModel).where(CourierProfileModel.id == profile_id)
-        result = await self.session.scalars(stmt)
-        model = result.one_or_none()
-        if model:
-            await self.session.delete(model)
-            await self.session.flush()
 
 class SQLAlchemyOTPRepository:
     def __init__(self, session: AsyncSession):

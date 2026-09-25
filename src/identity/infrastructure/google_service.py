@@ -1,12 +1,12 @@
 import urllib.parse
 import httpx
+import secrets
 
 from src.core.config import settings
-from src.identity.application.interfaces import IOAuthService
 from src.identity.application.dtos.oauth_user import OAuthUser
 
 
-class GoogleOAuthService(IOAuthService):
+class GoogleOAuthService:
     AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
     TOKEN_URL = "https://oauth2.googleapis.com/token"
     USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -18,18 +18,21 @@ class GoogleOAuthService(IOAuthService):
         self._client_id = client_id
         self._client_secret = client_secret
 
-    def get_authorization_url(self, redirect_uri: str, state: str) -> str:
+    def get_authorization_url(self) -> str:
+        callback_uri = settings.CALLBACK_URI+f"/google/callback"
+
         params = {
         "client_id": self._client_id,
-        "redirect_uri": redirect_uri,
+        "redirect_uri": callback_uri,
         "response_type": "code",
         "scope": "openid email profile",
-        "state": state, #сделать хранилище и проверку
+        "state": secrets.token_urlsafe(16),
         "prompt": "select_account",
     }
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
 
-    async def get_user_info(self, code, redirect_uri) -> OAuthUser:
+    async def get_user_info(self, code) -> OAuthUser:
+        callback_uri = settings.CALLBACK_URI+f"/google/callback"
         async with httpx.AsyncClient(timeout=10) as client:
             token_response = await client.post(
                 self.TOKEN_URL,
@@ -38,7 +41,7 @@ class GoogleOAuthService(IOAuthService):
                     "client_secret": self._client_secret,
                     "code": code,
                     "grant_type": "authorization_code",
-                    "redirect_uri": redirect_uri
+                    "redirect_uri": callback_uri
                 }
             )
             if token_response.is_error:

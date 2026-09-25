@@ -2,10 +2,8 @@ import json
 from redis.asyncio import Redis
 from typing import Any
 
-from src.identity.application.interfaces import ICacheRepository
 
-
-class RedisCacheRepository(ICacheRepository):
+class RedisCacheRepository:
     def __init__(self, redis_client: Redis):
         self.redis = redis_client
 

@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.import_linter_cache/
 venv/
 env/
 .env_venv/

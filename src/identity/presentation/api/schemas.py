@@ -1,9 +1,6 @@
 from pydantic import BaseModel, Field
 import uuid
 
-from src.identity.domain.value_objects.enums import CourierStatus
-
-
 
 class RequestOTP(BaseModel):
     phone: str = Field(..., description="Phone number", json_schema_extra={"example": "8 (999) 123-45-67"})
@@ -25,20 +22,6 @@ class RefreshRequest(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: str
-
-class CoordinatesSchema(BaseModel):
-    lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude")
-    lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude")
-
-class UpdateCourierProfileRequest(BaseModel):
-    name: str = Field(..., min_length=2, max_length=100, description="Courier name")
-
-
-class CourierProfileResponse(BaseModel):
-    id: uuid.UUID
-    name: str | None = None
-    status: CourierStatus
-    coordinates: CoordinatesSchema | None = None
 
 
 class UpdateUserProfileRequest(BaseModel):

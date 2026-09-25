@@ -21,7 +21,7 @@ class GetUserProfileUseCase:
 
         if not profile:
             raise ProfileNotFoundError("User profile not found")
-        
+   
         await self.cache.set(cache_key, profile.to_dict(), ttl_second=600)
         return profile
         

@@ -1,12 +1,9 @@
 class DomainException(Exception):
     pass
 
-class InvalidPhoneNumberError(DomainException):
-    pass
 class OTPVerificationFailedError(DomainException):
     pass
-class InvalidEmailError(DomainException):
-    pass
+
 class InvalidCoordinatesError(DomainException):
     pass
 class AccountNotFoundError(DomainException): 
@@ -27,4 +24,10 @@ class OTPRateLimitError(DomainException):
     pass
 
 class InvalidOTPCodeError(DomainException):
+    pass
+
+class InvalidEmailError(DomainException):
+    pass
+
+class InvalidPhoneNumberError(DomainException):
     pass

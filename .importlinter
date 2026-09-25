@@ -1,0 +1,40 @@
+[importlinter]
+root_package = src
+
+# ====================================================================
+# КОНТРАКТ 1: Изоляция ограниченных контекстов (Bounded Contexts)
+# ====================================================================
+[importlinter:contract:1]
+name = Bounded Contexts Independence
+type = independence
+modules =
+    src.identity
+    src.courier
+; ignore_imports =
+;     # Прагматичное исключение: разрешаем слою Presentation в Courier 
+;     # импортировать зависимости авторизации (запрос текущего юзера) из Identity
+;     src.courier.presentation.* -> src.identity.presentation.*
+
+# ====================================================================
+# КОНТРАКТ 2: Строгие слои DDD для модуля Identity
+# ====================================================================
+[importlinter:contract:2]
+name = DDD Layers for Identity
+type = layers
+layers =
+    src.identity.presentation
+    src.identity.infrastructure
+    src.identity.application
+    src.identity.domain
+
+# ====================================================================
+# КОНТРАКТ 3: Строгие слои DDD для модуля Courier
+# ====================================================================
+[importlinter:contract:3]
+name = DDD Layers for Courier
+type = layers
+layers =
+    src.courier.presentation
+    src.courier.infrastructure
+    src.courier.application
+    src.courier.domain

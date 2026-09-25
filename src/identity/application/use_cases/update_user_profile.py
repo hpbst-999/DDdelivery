@@ -9,9 +9,9 @@ class UpdateUserProfileUseCase:
         self.uow = uow
         self.cache = cache
 
-    async def execute(self, account_id: str, name: str | None = None, address: str | None = None) -> UserProfile:
+    async def execute(self, id: str, name: str | None = None, address: str | None = None) -> UserProfile:
         async with self.uow:
-            profile = await self.uow.user_profiles.get_user_by_id(account_id)
+            profile = await self.uow.user_profiles.get_user_by_id(id)
             if not profile:
                 raise ProfileNotFoundError("User profile not found")
 

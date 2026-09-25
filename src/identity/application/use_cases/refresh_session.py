@@ -30,11 +30,11 @@ class RefreshSessionUseCase:
 
             account_id = session_data.account_id
             new_tokens = self.token_service.generate_pair(account_id=account_id)
-            new_id = uuid.uuid4()
+            token_id = uuid.uuid4()
             expires_at = datetime.now(timezone.utc) + timedelta(days=30)
 
             await self.uow.refresh_tokens.save_refresh_token(
-                id=new_id,
+                id=token_id,
                 account_id=account_id,
                 refresh_token=new_tokens["refresh_token"],
                 expires_at=expires_at,

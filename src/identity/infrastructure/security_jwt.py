@@ -2,10 +2,10 @@ import jwt
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from src.identity.application.interfaces import ITokenService, TokenPair
+from src.identity.application.dtos.token_pair import TokenPair
 
 
-class JwtTokenService(ITokenService):
+class JwtTokenService:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
         self.algorithm = "HS256"

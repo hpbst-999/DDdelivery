@@ -4,9 +4,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
 from src.core.config import settings
 from redis.asyncio import Redis
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    pass
 
 engine:AsyncEngine = create_async_engine(
     url=settings.database_url, 
@@ -24,23 +28,6 @@ SessionFactory:AsyncSession = async_sessionmaker(
     expire_on_commit=False
 )
 
-class Base(DeclarativeBase):
-    pass
-
-
-async def init_db() -> None:
-
-    from src.identity.infrastructure.models import (
-        AccountModel, 
-        UserProfileModel, 
-        CourierProfileModel,
-        OTPModel,
-        RefreshTokenModel
-    )
-    from src.outbox.infrastructure.models import OutboxMessageModel
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
 redis_client = Redis(
     host=settings.REDIS_HOST, 

@@ -1,0 +1,46 @@
+import uuid
+from datetime import datetime, timezone
+
+from src.courier.domain.value_objects.enums import CourierStatus
+
+
+class CourierProfile:
+    def __init__(
+        self, 
+        id: uuid.UUID, 
+        account_id: uuid.UUID,
+        full_name: str| None = None, 
+        inn: str| None = None,
+        is_verified: bool = False,
+        verified_at: datetime | None = None,
+        status: CourierStatus = CourierStatus.OFFLINE
+    ):
+        self.id = id
+        self.account_id = account_id
+        self.full_name = full_name
+        self.inn = inn
+        self.is_verified = is_verified
+        self.verified_at = verified_at
+        self.status = status
+
+    def verify(self) -> None:
+        self.is_verified = True
+        self.verified_at = datetime.now(timezone.utc)
+
+    def revoke_verification(self) -> None:
+        self.is_verified = False
+        self.verified_at = None
+        self.go_offline()
+
+    def go_online(self) -> None:
+        if not self.is_verified:
+            raise ValueError("Not verified")
+        self.status = CourierStatus.ONLINE
+
+    def go_offline(self) -> None:
+        self.status = CourierStatus.OFFLINE
+        
+    def assign_order(self) -> None:
+        if self.status != CourierStatus.ONLINE:
+            raise ValueError("Not online")
+        self.status = CourierStatus.BUSY

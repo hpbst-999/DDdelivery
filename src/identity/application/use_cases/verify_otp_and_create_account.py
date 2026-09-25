@@ -5,9 +5,7 @@ from src.identity.application.interfaces import IUnitOfWork, ITokenService, Toke
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.exceptions import DomainException, InvalidOTPCodeError
-from src.identity.domain.value_objects.enums import AccountRole
-
-class VerifyOTPAndCreateUserUseCase:
+class VerifyOTPAndCreateAccountUseCase:
     
     def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
         self.uow = uow
@@ -24,30 +22,24 @@ class VerifyOTPAndCreateUserUseCase:
                 otp.verify(input_code)
             finally:
                 await self.uow.otp.update_otp(otp)
-                # self.uow.commit()         
-
+                
             phone_number = otp.phone_number
         
             account = await self.uow.accounts.get_account_by_phone(phone_number)
             if account:
-                if not account.has_role(AccountRole.USER):
-                    account.add_role(AccountRole.USER)
-                    new_profile = UserProfile(id=account.id)
-                    await self.uow.user_profiles.add_user(new_profile)
-                    await self.uow.accounts.update_account(account)
                 account_id = str(account.id)
                 
             else:
-                new_account_id = uuid.uuid4()
-                new_account = Account(
-                    id=new_account_id,
-                    roles=[AccountRole.USER],
+                account_id = uuid.uuid4()
+                account = Account(
+                    id=account_id,
                     phone_number=phone_number
                 )
-                new_profile = UserProfile(id=new_account.id)
-                await self.uow.accounts.add_account(new_account)
-                await self.uow.user_profiles.add_user(new_profile)
-                account_id = str(new_account.id)
+                user_profile_id = uuid.uuid4()
+                user_profile = UserProfile(id=user_profile_id, account_id=account.id)
+                await self.uow.accounts.add_account(account)
+                await self.uow.user_profiles.add_user(user_profile)
+                account_id = str(account.id)
 
             tokens = self.token_service.generate_pair(account_id=account_id)
             new_id = uuid.uuid4()

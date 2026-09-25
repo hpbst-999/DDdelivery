@@ -1,14 +1,12 @@
 import uuid
 from datetime import datetime
-from typing import Any
 
-from geoalchemy2 import Geometry
 from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
-from src.identity.domain.value_objects.enums import CourierStatus
+
 
 
 class AccountModel(Base):
@@ -24,22 +22,9 @@ class UserProfileModel(Base):
     __tablename__ = "user_profiles"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True, nullable=False, unique=True)
     name: Mapped[str | None] = mapped_column(String(255))
     address: Mapped[str | None] = mapped_column(String(255))
-
-
-class CourierProfileModel(Base):
-    __tablename__ = "courier_profiles"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
-    name: Mapped[str | None] = mapped_column(String(255))
-    status: Mapped[str] = mapped_column(
-        String(50), 
-        default=CourierStatus.OFFLINE.value
-    )
-    coordinates: Mapped[Any | None] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326, spatial_index=True)
-    )
 
 
 class OTPModel(Base):
@@ -60,11 +45,7 @@ class RefreshTokenModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
-    refresh_token: Mapped[str] = mapped_column(
-        String(512), 
-        unique=True, 
-        index=True
-    )
+    refresh_token: Mapped[str] = mapped_column(String(512), unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
