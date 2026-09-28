@@ -1,3 +1,5 @@
+import uuid
+
 from src.identity.application.interfaces import IUnitOfWork, ICacheRepository
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.exceptions import ProfileNotFoundError
@@ -9,7 +11,7 @@ class UpdateUserProfileUseCase:
         self.uow = uow
         self.cache = cache
 
-    async def execute(self, id: str, name: str | None = None, address: str | None = None) -> UserProfile:
+    async def execute(self, id: uuid.UUID, name: str | None = None, address: str | None = None) -> UserProfile:
         async with self.uow:
             profile = await self.uow.user_profiles.get_user_by_id(id)
             if not profile:
@@ -22,6 +24,8 @@ class UpdateUserProfileUseCase:
                 profile.address = address
 
             await self.uow.user_profiles.update_user(profile)
+
+            await self.uow.commit()
             
         cache_key = f"user_profile:{profile.id}"
         await self.cache.delete(cache_key)

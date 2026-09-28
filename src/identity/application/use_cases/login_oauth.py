@@ -44,5 +44,5 @@ class LoginWithOAuthUseCase:
                     expires_at=expires_at,
                     created_at = datetime.now(timezone.utc)
                 )
-
+            await self.uow.commit()
         return tokens

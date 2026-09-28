@@ -36,5 +36,7 @@ class RequestOTPUseCase:
                     "code": new_otp.code,})
             
             await self.uow.outbox.add(outbox_event)
+
+            await self.uow.commit()
         
         return new_otp.session_id

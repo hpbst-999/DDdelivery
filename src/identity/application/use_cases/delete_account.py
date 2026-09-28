@@ -18,4 +18,4 @@ class DeleteAccountUseCase:
             await self.uow.user_profiles.delete_user(id)
             await self.uow.accounts.delete_account(id)
             # как тут реализовать каскадное удаление профилей
-            self.uow.commit()
+            await self.uow.commit()

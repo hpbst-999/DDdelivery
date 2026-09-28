@@ -20,8 +20,11 @@ class VerifyOTPAndCreateAccountUseCase:
 
             try:
                 otp.verify(input_code)
-            finally:
                 await self.uow.otp.update_otp(otp)
+            except InvalidOTPCodeError as e:
+                await self.uow.otp.update_otp(otp)
+                await self.uow.commit() 
+                raise e
                 
             phone_number = otp.phone_number
         
@@ -52,5 +55,6 @@ class VerifyOTPAndCreateAccountUseCase:
                     expires_at=expires_at,
                     created_at = datetime.now(timezone.utc)
                 )
+            await self.uow.commit()
 
         return tokens

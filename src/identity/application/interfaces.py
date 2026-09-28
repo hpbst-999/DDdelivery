@@ -82,9 +82,9 @@ class IUnitOfWork(Protocol):
         ...
 
 class IOAuthService(Protocol):
-    def get_authorization_url(self, role:str) -> str:
+    def get_authorization_url(self, role:str, state:str) -> str:
         ...
-    async def get_user_info(self, code: str, role:str) -> OAuthUser:
+    async def get_user_info(self, code: str) -> OAuthUser:
         ...
 
 class ICacheRepository(Protocol):

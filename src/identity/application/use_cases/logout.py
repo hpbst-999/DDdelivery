@@ -8,3 +8,5 @@ class LogoutUseCase:
     async def execute(self, refresh_token: str) -> None:
         async with self.uow:
             await self.uow.refresh_tokens.revoke_token(refresh_token)
+
+            await self.uow.commit()

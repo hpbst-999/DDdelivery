@@ -24,6 +24,7 @@ class RefreshSessionUseCase:
             now = datetime.now(timezone.utc)
             if session_data.expires_at <= now:
                 await self.uow.refresh_tokens.revoke_token(raw_refresh_token)
+                await self.uow.commit()
                 raise DomainException("Refresh token has expired.")
 
             await self.uow.refresh_tokens.revoke_token(raw_refresh_token)
@@ -41,4 +42,5 @@ class RefreshSessionUseCase:
                 created_at = now
             )
 
+            await self.uow.commit()
         return new_tokens

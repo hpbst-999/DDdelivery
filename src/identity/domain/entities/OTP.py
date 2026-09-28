@@ -1,5 +1,6 @@
 import uuid
 import random
+from typing import Callable
 from datetime import datetime, timedelta, timezone
 
 from src.identity.domain.value_objects.phone_number import PhoneNumber
@@ -8,7 +9,7 @@ from src.identity.domain.exceptions import (
     OTPMaxAttemptsExceededError,
     InvalidOTPCodeError
 )
-
+from src.identity.domain.services.otp_generator import OTPCodeGenerator
 
 class OTP:
     def __init__(self, session_id: uuid.UUID, phone_number: PhoneNumber, code: str, 
@@ -25,11 +26,11 @@ class OTP:
         
 
     @classmethod
-    def generate_otp(cls, phone: PhoneNumber, ttl_min: int = 10, max_attempts = 3) -> "OTP":
+    def generate_otp(cls, phone: PhoneNumber, code_generator: Callable[[], str] = OTPCodeGenerator.generate_random,ttl_min: int = 10, max_attempts = 3) -> "OTP":
         return cls(
             session_id=uuid.uuid4(),
             phone_number=phone,
-            code=str(random.randint(1000, 9999)),
+            code=code_generator(),
             created_at = datetime.now(timezone.utc),
             expires_at=datetime.now(timezone.utc) + timedelta(ttl_min),
             attempts_count = 0,

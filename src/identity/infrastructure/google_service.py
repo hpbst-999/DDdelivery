@@ -1,6 +1,6 @@
 import urllib.parse
 import httpx
-import secrets
+
 
 from src.core.config import settings
 from src.identity.application.dtos.oauth_user import OAuthUser
@@ -18,15 +18,14 @@ class GoogleOAuthService:
         self._client_id = client_id
         self._client_secret = client_secret
 
-    def get_authorization_url(self) -> str:
+    def get_authorization_url(self, state) -> str:
         callback_uri = settings.CALLBACK_URI+f"/google/callback"
-
         params = {
         "client_id": self._client_id,
         "redirect_uri": callback_uri,
         "response_type": "code",
         "scope": "openid email profile",
-        "state": secrets.token_urlsafe(16),
+        "state": state,
         "prompt": "select_account",
     }
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
@@ -44,8 +43,6 @@ class GoogleOAuthService:
                     "redirect_uri": callback_uri
                 }
             )
-            if token_response.is_error:
-                print("GOOGLE TOKEN ERROR BODY:", token_response.text)
             token_response.raise_for_status()
             access_token = token_response.json().get("access_token")
 

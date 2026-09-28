@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+import secrets
 
 from src.identity.application.interfaces import IOAuthServiceFactory
 from src.identity.application.use_cases.login_oauth import LoginWithOAuthUseCase
@@ -20,7 +21,6 @@ from src.identity.presentation.api.schemas import (
 from src.identity.presentation.dependencies import (
     get_current_account,
     get_delete_account_use_case,
-    get_google_oauth_service,
     get_login_user_use_case,
     get_logout_use_case,
     get_refresh_session_use_case,
@@ -28,8 +28,8 @@ from src.identity.presentation.dependencies import (
     get_update_user_profile_use_case,
     get_user_profile_use_case,
     get_verify_otp_use_case,
-    get_yandex_oauth_service,
-    get_oauth_service_factory
+    get_oauth_service_factory,
+    get_cache_repository
 )
 
 router = APIRouter(tags=["Authentication"])
@@ -136,9 +136,10 @@ async def delete_user_account(
 
 
 @router.get("/{provider}/url")
-def get_user_auth_url(
+async def get_user_auth_url(
     provider:str,
-    factory = Depends(get_oauth_service_factory)
+    factory = Depends(get_oauth_service_factory),
+    cache= Depends(get_cache_repository)
 ):
     try:
         oauth_service = factory.get_service(provider)
@@ -146,8 +147,10 @@ def get_user_auth_url(
     except ValueError as exc:
         raise HTTPException(
             status_code=400, detail=str(exc)) 
-    
-    url = oauth_service.get_authorization_url()
+    state = secrets.token_urlsafe(16)
+    cache_key = f"state:{state}"
+    await cache.set(key=cache_key, value=provider)
+    url = oauth_service.get_authorization_url(state)
     return {"url": url}
 
 @router.get("/{provider}/callback")
@@ -157,7 +160,15 @@ async def user_oauth_callback(
     state: str | None = Query(None),
     factory: IOAuthServiceFactory = Depends(get_oauth_service_factory),
     use_case: LoginWithOAuthUseCase = Depends(get_login_user_use_case),
+    cache = Depends(get_cache_repository)
 ):
+    cache_key = f"oauth_state:{state}"
+    saved_provider= await cache.get(key=cache_key)
+    if not saved_provider:
+        raise HTTPException(status_code=400, detail="State is invalid or expired.")
+    await cache.delete(key=cache_key)
+    if saved_provider != provider:
+        raise HTTPException(status_code=400, detail="State provider mismatch.")
     oauth_service = factory.get_service(provider)
     user_info = await oauth_service.get_user_info(code=code, role="user")
     return await use_case.execute(user_info)
