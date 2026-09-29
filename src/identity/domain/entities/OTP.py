@@ -32,7 +32,7 @@ class OTP:
             phone_number=phone,
             code=code_generator(),
             created_at = datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(ttl_min),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=ttl_min),
             attempts_count = 0,
             max_attempts = max_attempts,
             is_used = False

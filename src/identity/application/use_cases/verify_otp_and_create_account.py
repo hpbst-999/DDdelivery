@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.user_profile import UserProfile
-from src.identity.domain.exceptions import DomainException, InvalidOTPCodeError
+from src.identity.domain.exceptions import DomainException, InvalidOTPCodeError, OTPSessionNotFoundError
 class VerifyOTPAndCreateAccountUseCase:
     
     def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
@@ -16,7 +16,7 @@ class VerifyOTPAndCreateAccountUseCase:
         async with self.uow:
             otp = await self.uow.otp.get_otp_by_session(session_id)
             if not otp:
-                raise DomainException("OTP session not found.") #поправить ошибку
+                raise OTPSessionNotFoundError("OTP session not found.") 
 
             try:
                 otp.verify(input_code)

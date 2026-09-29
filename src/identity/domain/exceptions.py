@@ -31,3 +31,6 @@ class InvalidEmailError(DomainException):
 
 class InvalidPhoneNumberError(DomainException):
     pass
+
+class OTPSessionNotFoundError(DomainException):
+    pass

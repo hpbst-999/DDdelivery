@@ -3,7 +3,9 @@ __pycache__/
 *$py.class
 .import_linter_cache/
 venv/
+.venv/
 env/
 .env_venv/
 .venv/
 .env
+.pytest_cache/
