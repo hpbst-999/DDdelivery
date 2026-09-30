@@ -1,11 +1,13 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.identity.infrastructure.postgres_repositories import (
     SQLAlchemyAccountRepository,
-    SQLAlchemyUserProfileRepository,
     SQLAlchemyOTPRepository,
-    SQLAlchemyRefreshTokenRepository
+    SQLAlchemyRefreshTokenRepository,
+    SQLAlchemyUserProfileRepository,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 from src.outbox.infrastructure.postgres_repository import SQLAlchemyOutboxRepository
+
 
 class SQLAlchemyUnitOfWork:
     def __init__(self, session: AsyncSession):

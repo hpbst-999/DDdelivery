@@ -1,11 +1,12 @@
 import uuid
+from datetime import UTC, datetime, timedelta
+
 import pytest
 import pytest_asyncio
-from datetime import datetime, timezone, timedelta
 
-from tests.identity.fakes.fake_uow import FakeUnitOfWork
 from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
 from src.identity.domain.exceptions import DomainException, SessionNotFoundError
+from tests.identity.fakes.fake_uow import FakeUnitOfWork
 
 
 class FakeTokenServiceWithValidation:
@@ -38,55 +39,55 @@ def use_case(uow, token_service):
 
 @pytest.mark.asyncio
 async def test_refresh_session_success(use_case, uow, token_service):
-    
+
     token_id = uuid.uuid4()
     account_id = uuid.uuid4()
     old_token = "valid_old_refresh_token"
-    
+
     await uow.refresh_tokens.save_refresh_token(
         id=token_id,
         account_id=account_id,
         refresh_token=old_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=10),
-        created_at=datetime.now(timezone.utc)
+        expires_at=datetime.now(UTC) + timedelta(days=10),
+        created_at=datetime.now(UTC)
     )
-    
+
     new_tokens = await use_case.execute(raw_refresh_token=old_token)
 
     assert new_tokens["access_token"] is not None
     assert new_tokens["refresh_token"] == "new_refresh_for_" + str(account_id)
-    
+
     assert len(uow.refresh_tokens.tokens) == 1
     saved_token_data = list(uow.refresh_tokens.tokens.values())[0]
     assert saved_token_data["refresh_token"] == new_tokens["refresh_token"]
-    
+
     assert uow.committed is True
 
 
 @pytest.mark.asyncio
 async def test_refresh_session_invalid_token_format(use_case, token_service):
-    
+
     bad_token = "malformed_token"
     token_service.invalid_tokens.add(bad_token)
-    
+
     with pytest.raises(DomainException, match="Invalid token signature"):
         await use_case.execute(raw_refresh_token=bad_token)
 
 
 @pytest.mark.asyncio
 async def test_refresh_session_not_found_in_db(use_case):
-    
+
     with pytest.raises(SessionNotFoundError, match="Session not found"):
         await use_case.execute(raw_refresh_token="crypto_valid_but_ghost_token")
 
 
 @pytest.mark.asyncio
 async def test_refresh_session_expired(use_case, uow):
-    
+
     token_id = uuid.uuid4()
     expired_token = "expired_refresh_token"
-    
-    past_time = datetime.now(timezone.utc) - timedelta(days=1)
+
+    past_time = datetime.now(UTC) - timedelta(days=1)
     await uow.refresh_tokens.save_refresh_token(
         id=token_id,
         account_id=uuid.uuid4(),
@@ -94,9 +95,9 @@ async def test_refresh_session_expired(use_case, uow):
         expires_at=past_time,
         created_at=past_time - timedelta(days=30)
     )
-    
+
     with pytest.raises(DomainException, match="Refresh token has expired"):
         await use_case.execute(raw_refresh_token=expired_token)
-        
+
     assert len(uow.refresh_tokens.tokens) == 0
     assert uow.committed is True

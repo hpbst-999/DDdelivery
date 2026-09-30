@@ -1,6 +1,6 @@
 import uuid
 
-from src.identity.application.interfaces import IUnitOfWork, ICacheRepository
+from src.identity.application.interfaces import ICacheRepository, IUnitOfWork
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.exceptions import ProfileNotFoundError
 
@@ -21,7 +21,6 @@ class GetUserProfileUseCase:
 
         if not profile:
             raise ProfileNotFoundError("User profile not found")
-   
+
         await self.cache.set(cache_key, profile.to_dict(), ttl_second=600)
         return profile
-        

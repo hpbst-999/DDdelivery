@@ -5,7 +5,7 @@ from src.identity.domain.exceptions import AccountNotFoundError
 
 
 class DeleteAccountUseCase:
-    
+
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow
 
@@ -14,7 +14,7 @@ class DeleteAccountUseCase:
             account = await self.uow.accounts.get_account_by_id(id)
             if not account:
                 raise AccountNotFoundError("Account not found")
-            
+
             await self.uow.user_profiles.delete_user(id)
             await self.uow.accounts.delete_account(id)
             # как тут реализовать каскадное удаление профилей

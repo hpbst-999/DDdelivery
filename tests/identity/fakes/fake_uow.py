@@ -1,8 +1,10 @@
 import uuid
-from src.identity.domain.entities.OTP import OTP
+
 from src.identity.domain.entities.account import Account
+from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.entities.user_profile import UserProfile
 from src.outbox.domain.outbox_message import OutboxMessage
+
 
 class FakeOTPRepository:
     def __init__(self):
@@ -47,6 +49,12 @@ class FakeAccountRepository:
                 return account
         return None
 
+    async def get_account_by_email(self, email) -> Account | None:
+        for account in self.accounts.values():
+            if hasattr(account, "email") and str(account.email) == str(email):
+                return account
+        return None
+
     async def add_account(self, account: Account) -> None:
         self.accounts[account.id] = account
 
@@ -75,7 +83,7 @@ class FakeUserProfileRepository:
             if profile.account_id == account_id:
                 profile_id_to_delete = pid
                 break
-        
+
         if profile_id_to_delete:
             self.profiles.pop(profile_id_to_delete)
 
@@ -97,7 +105,7 @@ class FakeRefreshTokenRepository:
             if tdata["refresh_token"] == refresh_token:
                 token_id_to_delete = tid
                 break
-        
+
         if token_id_to_delete:
             self.tokens.pop(token_id_to_delete)
 

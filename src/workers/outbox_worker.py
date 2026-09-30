@@ -1,12 +1,11 @@
-import signal
 import asyncio
+import signal
 
-from src.core.config import settings
+from src.core.database import SessionFactory, engine
 from src.outbox.application.use_cases.process_batch import ProcessOutboxBatchUseCase
 from src.outbox.infrastructure.publishers.composite_dispatcher import EventDispatcher
 from src.outbox.infrastructure.publishers.sms_service import SmsSenderPublisher
 from src.outbox.infrastructure.uow import SQLAlchemyUnitOfWork
-from src.core.database import engine, SessionFactory
 
 
 class OutboxWorker:
@@ -14,16 +13,16 @@ class OutboxWorker:
         self.poll_interval = poll_interval
         self.batch_size = batch_size
         self._is_running = True
-        
+
         self.engine = engine
         self.session_factory = session_factory
 
         self.dispatcher = EventDispatcher()
         sms_publisher = SmsSenderPublisher()
-        
+
         self.dispatcher.register("identity.otp_created", sms_publisher.send_sms)
 
-        
+
 
     def _setup_signal_handlers(self) -> None:
         loop = asyncio.get_running_loop()
@@ -51,7 +50,7 @@ class OutboxWorker:
                             publisher=self.dispatcher,
                             batch_size=self.batch_size,
                         )
-                    
+
                     processed_count = await use_case.execute()
 
                     if processed_count > 0:

@@ -8,10 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.database import Base
 
 
-
 class AccountModel(Base):
     __tablename__ = 'accounts'
-    
+
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     phone_number: Mapped[str | None] = mapped_column(String(20), unique=True)
     email: Mapped[str | None] = mapped_column(String(255), unique=True)

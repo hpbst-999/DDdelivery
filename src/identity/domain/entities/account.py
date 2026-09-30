@@ -1,14 +1,14 @@
 import uuid
 
-from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.value_objects.email import Email
+from src.identity.domain.value_objects.phone_number import PhoneNumber
 
 
 class Account:
     def __init__(
-        self, 
-        id: uuid.UUID, 
-        phone_number: PhoneNumber | None  = None, 
+        self,
+        id: uuid.UUID,
+        phone_number: PhoneNumber | None  = None,
         email: Email | None = None
     ):
         self.id = id
@@ -21,7 +21,7 @@ class Account:
             "phone_number": self.phone_number if self.phone_number else None,
             "email": self.email,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Account":
         raw_email = data.get("email")

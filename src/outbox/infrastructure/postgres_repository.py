@@ -1,9 +1,9 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.outbox.infrastructure.models import OutboxMessageModel
-from src.outbox.domain.outbox_message import OutboxMessage
 from src.outbox.domain.enum import OutboxStatus
+from src.outbox.domain.outbox_message import OutboxMessage
+from src.outbox.infrastructure.models import OutboxMessageModel
 
 
 class SQLAlchemyOutboxRepository:
@@ -40,7 +40,7 @@ class SQLAlchemyOutboxRepository:
         stmt = select(OutboxMessageModel).where(OutboxMessageModel.id == message.id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
-        
+
         if model:
             model.status = message.status
             model.retry_count = message.retry_count
@@ -50,5 +50,5 @@ class SQLAlchemyOutboxRepository:
         stmt = select(OutboxMessageModel).where(OutboxMessageModel.status == OutboxStatus.PENDING).order_by(OutboxMessageModel.created_at.asc()).limit(limit).with_for_update(skip_locked=True)
         result = await self.session.scalars(stmt)
         models = result.all()
-    
+
         return [self._to_entity(m) for m in models]

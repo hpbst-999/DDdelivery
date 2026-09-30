@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courier.infrastructure.postgres_repositories import SQLAlchemyCourierProfileRepository
 
+
 class SQLAlchemyUnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session

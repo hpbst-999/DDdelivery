@@ -1,6 +1,7 @@
 import json
-from redis.asyncio import Redis
 from typing import Any
+
+from redis.asyncio import Redis
 
 
 class RedisCacheRepository:
@@ -16,14 +17,14 @@ class RedisCacheRepository:
             return json.loads(data)
         except json.JSONDecodeError:
             return data
-        
+
     async def set(self, key: str, value:Any, ttl_second: int = 600) -> None:
         json_data = json.dumps(value, default=str)
         await self.redis.set(key, json_data, ex=ttl_second)
 
     async def delete(self, key: str) -> None:
         await self.redis.delete(key)
-        
+
 
 
 

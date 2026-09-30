@@ -5,7 +5,7 @@ from src.courier.domain.exceptions import DomainException
 
 
 class DeleteCourierUseCase:
-    
+
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow
 
@@ -16,6 +16,6 @@ class DeleteCourierUseCase:
 
             if not courier_profile:
                 raise DomainException("Courier profile not found")
-            
+
             await self.uow.courier_profiles.delete_courier(account_id)
             await self.uow.commit()

@@ -37,10 +37,10 @@ class SQLAlchemyCourierProfileRepository:
             stmt = select(CourierProfileModel).where(CourierProfileModel.account_id == account_id)
             result = await self.session.scalars(stmt)
             model = result.one_or_none()
-    
+
             if not model:
                 return None
-    
+
             return self._to_entity(model=model)
 
     async def add_courier(self, profile: CourierProfile) -> None:
@@ -65,7 +65,7 @@ class SQLAlchemyCourierProfileRepository:
             model.full_name = profile.full_name
             model.inn = profile.inn
             model.status = profile.status
-            
+
 
     async def delete_courier(self,id: uuid.UUID) -> None:
         stmt = select(CourierProfileModel).where(CourierProfileModel.id == id)

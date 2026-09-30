@@ -1,6 +1,6 @@
 import urllib.parse
-import httpx
 
+import httpx
 
 from src.core.config import settings
 from src.identity.application.dtos.oauth_user import OAuthUser
@@ -19,7 +19,7 @@ class GoogleOAuthService:
         self._client_secret = client_secret
 
     def get_authorization_url(self, state) -> str:
-        callback_uri = settings.CALLBACK_URI+f"/google/callback"
+        callback_uri = settings.CALLBACK_URI+"/google/callback"
         params = {
         "client_id": self._client_id,
         "redirect_uri": callback_uri,
@@ -31,7 +31,7 @@ class GoogleOAuthService:
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
 
     async def get_user_info(self, code) -> OAuthUser:
-        callback_uri = settings.CALLBACK_URI+f"/google/callback"
+        callback_uri = settings.CALLBACK_URI+"/google/callback"
         async with httpx.AsyncClient(timeout=10) as client:
             token_response = await client.post(
                 self.TOKEN_URL,
@@ -61,4 +61,4 @@ class GoogleOAuthService:
 
 
 
-        
+

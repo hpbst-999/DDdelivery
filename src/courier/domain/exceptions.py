@@ -7,5 +7,5 @@ class InvalidEmailError(DomainException):
 class InvalidPhoneNumberError(DomainException):
     pass
 
-class ProfileNotFoundError(DomainException): 
+class ProfileNotFoundError(DomainException):
     pass

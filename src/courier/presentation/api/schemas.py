@@ -1,14 +1,16 @@
-from pydantic import BaseModel, Field
 import uuid
 from datetime import datetime
 
+from pydantic import BaseModel, Field
+
 from src.courier.domain.value_objects.enums import CourierStatus
+
 
 class UpdateCourierProfileRequest(BaseModel):
     full_name: str | None = Field(
-        default=None, 
-        min_length=2, 
-        max_length=255, 
+        default=None,
+        min_length=2,
+        max_length=255,
         description="Full name courier")
     inn: str | None = Field(
         default=None,

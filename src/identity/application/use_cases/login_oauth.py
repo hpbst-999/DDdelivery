@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from src.identity.application.dtos.oauth_user import OAuthUser
-from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
+from src.identity.application.interfaces import ITokenService, IUnitOfWork, TokenPair
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.value_objects.email import Email
@@ -20,7 +20,7 @@ class LoginWithOAuthUseCase:
             account = await self.uow.accounts.get_account_by_email(email)
             if account:
                 account_id = str(account.id)
-                
+
             else:
                 account_id = uuid.uuid4()
                 account = Account(
@@ -35,14 +35,14 @@ class LoginWithOAuthUseCase:
 
             tokens = self.token_service.generate_pair(account_id=account_id)
             token_id = uuid.uuid4()
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+            expires_at = datetime.now(UTC) + timedelta(days=30)
 
             await self.uow.refresh_tokens.save_refresh_token(
                     id=token_id,
                     account_id=account_id,
                     refresh_token=tokens["refresh_token"],
                     expires_at=expires_at,
-                    created_at = datetime.now(timezone.utc)
+                    created_at = datetime.now(UTC)
                 )
             await self.uow.commit()
         return tokens

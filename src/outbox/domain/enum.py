@@ -1,6 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
-class OutboxStatus(str,Enum):
+
+class OutboxStatus(StrEnum):
     PENDING = "PENDING"
     PROCESSED = "PROCESSED"
     FAILED = "FAILED"

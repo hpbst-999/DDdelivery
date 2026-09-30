@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
 import secrets
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.identity.application.interfaces import IOAuthServiceFactory
 from src.identity.application.use_cases.login_oauth import LoginWithOAuthUseCase
@@ -19,17 +20,17 @@ from src.identity.presentation.api.schemas import (
     VerifyOTPRequest,
 )
 from src.identity.presentation.dependencies import (
+    get_cache_repository,
     get_current_account,
     get_delete_account_use_case,
     get_login_user_use_case,
     get_logout_use_case,
+    get_oauth_service_factory,
     get_refresh_session_use_case,
     get_request_otp_use_case,
     get_update_user_profile_use_case,
     get_user_profile_use_case,
     get_verify_otp_use_case,
-    get_oauth_service_factory,
-    get_cache_repository
 )
 
 router = APIRouter(tags=["Authentication"])
@@ -42,10 +43,10 @@ async def send_code(
     try:
         session_id = await use_case.execute(raw_phone_number=request.phone)
         return ResponseOTP(session_id=str(session_id))
-    
+
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
 @router.post("/otp/verify", response_model=TokenResponse)
 async def verify_user_otp(
     request: VerifyOTPRequest,
@@ -57,11 +58,11 @@ async def verify_user_otp(
             access_token=tokens["access_token"],
             refresh_token=tokens["refresh_token"]
         )
-    
+
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
-    
+
+
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     request: RefreshRequest,
@@ -69,14 +70,14 @@ async def refresh_token(
 ):
     try:
         tokens = await use_case.execute(raw_refresh_token=request.refresh_token)
-        
+
         return TokenResponse(
             access_token=tokens["access_token"],
             refresh_token=tokens["refresh_token"]
         )
     except DomainException as e:
         raise HTTPException(status_code=401, detail=str(e))
-    
+
 
 @router.post("/logout")
 async def logout(
@@ -87,7 +88,7 @@ async def logout(
         await use_case.execute(refresh_token=request.refresh_token)
     except DomainException:
         pass
-    
+
     return {"message": "successful logout"}
 
 
@@ -112,8 +113,8 @@ async def update_user_profile(
 ):
     try:
         profile = await use_case.execute(
-            account_id=account.id, 
-            name=data.name, 
+            account_id=account.id,
+            name=data.name,
             address=data.address
         )
         return profile
@@ -131,7 +132,7 @@ async def delete_user_account(
         await use_case.execute(account_id=account.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -146,7 +147,7 @@ async def get_user_auth_url(
 
     except ValueError as exc:
         raise HTTPException(
-            status_code=400, detail=str(exc)) 
+            status_code=400, detail=str(exc))
     state = secrets.token_urlsafe(16)
     cache_key = f"state:{state}"
     await cache.set(key=cache_key, value=provider)

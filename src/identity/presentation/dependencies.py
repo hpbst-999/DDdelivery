@@ -6,9 +6,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
-from src.core.database import SessionFactory
-from src.core.database import redis_client
-from src.identity.application.interfaces import IOAuthService, IUnitOfWork
+from src.core.database import SessionFactory, redis_client
+from src.identity.application.interfaces import (
+    ICacheRepository,
+    IOAuthService,
+    IOAuthServiceFactory,
+    IUnitOfWork,
+)
 from src.identity.application.use_cases.delete_account import DeleteAccountUseCase
 from src.identity.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.identity.application.use_cases.login_oauth import LoginWithOAuthUseCase
@@ -16,16 +20,17 @@ from src.identity.application.use_cases.logout import LogoutUseCase
 from src.identity.application.use_cases.refresh_session import RefreshSessionUseCase
 from src.identity.application.use_cases.request_otp import RequestOTPUseCase
 from src.identity.application.use_cases.update_user_profile import UpdateUserProfileUseCase
-from src.identity.application.use_cases.verify_otp_and_create_account import VerifyOTPAndCreateAccountUseCase
+from src.identity.application.use_cases.verify_otp_and_create_account import (
+    VerifyOTPAndCreateAccountUseCase,
+)
 from src.identity.domain.entities.account import Account
 from src.identity.infrastructure.google_service import GoogleOAuthService
+from src.identity.infrastructure.oauth_factory import OAuthServiceFactory
+from src.identity.infrastructure.redis_repositories import RedisCacheRepository
 from src.identity.infrastructure.security_jwt import JwtTokenService
 from src.identity.infrastructure.uow import SQLAlchemyUnitOfWork
 from src.identity.infrastructure.yandex_service import YandexOAuthService
-from src.identity.application.interfaces import ICacheRepository
-from src.identity.infrastructure.redis_repositories import RedisCacheRepository
-from src.identity.application.interfaces import IOAuthServiceFactory
-from src.identity.infrastructure.oauth_factory import OAuthServiceFactory
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with SessionFactory() as session:
@@ -64,7 +69,7 @@ def get_verify_otp_use_case(
     token_service: JwtTokenService = Depends(get_token_service)
 ) -> VerifyOTPAndCreateAccountUseCase:
     return VerifyOTPAndCreateAccountUseCase(
-        uow=uow, 
+        uow=uow,
         token_service=token_service
     )
 
@@ -90,14 +95,14 @@ def get_user_profile_use_case(
 
 security = HTTPBearer()
 async def get_current_account(
-    credentials: HTTPAuthorizationCredentials = Depends(security), 
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     token_service: JwtTokenService = Depends(get_token_service),
     uow: IUnitOfWork = Depends(get_uow),
     cache: ICacheRepository = Depends(get_cache_repository)
 ) -> Account:
     token = credentials.credentials
     try:
-        payload = token_service.validate_access_token(token) 
+        payload = token_service.validate_access_token(token)
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
@@ -109,13 +114,13 @@ async def get_current_account(
     cache_account = await cache.get(key=cache_key)
     if cache_account:
         return Account.from_dict(cache_account)
-    
+
     async with uow:
         account = await uow.accounts.get_account_by_id(account_id)
         if not account:
             raise HTTPException(status_code=401, detail="Account not found")
         await cache.set(cache_key, account.to_dict(), ttl_second=600)
-        
+
         return account
 
 def get_google_oauth_service() -> IOAuthService:

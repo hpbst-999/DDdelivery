@@ -1,6 +1,8 @@
-from typing import Protocol
-from src.courier.domain.entities.courier_profile import CourierProfile
 import uuid
+from typing import Protocol
+
+from src.courier.domain.entities.courier_profile import CourierProfile
+
 
 class ICourierProfileRepository(Protocol):
     async def get_courier_by_id(self, profile_id: uuid.UUID) -> CourierProfile | None:

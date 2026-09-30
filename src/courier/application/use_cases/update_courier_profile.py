@@ -1,8 +1,9 @@
 from src.courier.application.interfaces import IUnitOfWork
 from src.courier.domain.exceptions import ProfileNotFoundError
 
+
 class UpdateCourierProfileUseCase:
-    
+
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow
 
@@ -15,7 +16,7 @@ class UpdateCourierProfileUseCase:
             if full_name is not None:
                 profile.full_name = full_name
 
-            if inn is not None:                                                                                    
+            if inn is not None:
                 profile.inn = inn
 
 

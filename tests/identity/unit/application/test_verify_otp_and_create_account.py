@@ -1,14 +1,17 @@
 import uuid
-import pytest_asyncio
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from tests.identity.fakes.fake_uow import FakeUnitOfWork
-from src.identity.application.use_cases.verify_otp_and_create_account import VerifyOTPAndCreateAccountUseCase
-from src.identity.domain.entities.OTP import OTP
+import pytest
+import pytest_asyncio
+
+from src.identity.application.use_cases.verify_otp_and_create_account import (
+    VerifyOTPAndCreateAccountUseCase,
+)
 from src.identity.domain.entities.account import Account
-from src.identity.domain.value_objects.phone_number import PhoneNumber
+from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.exceptions import DomainException, InvalidOTPCodeError
+from src.identity.domain.value_objects.phone_number import PhoneNumber
+from tests.identity.fakes.fake_uow import FakeUnitOfWork
 
 
 class FakeTokenService:
@@ -40,7 +43,7 @@ def valid_session_id():
 
 @pytest_asyncio.fixture
 async def pre_saved_otp(uow, target_phone, valid_session_id):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     otp = OTP(
         session_id=valid_session_id,
         phone_number=PhoneNumber(target_phone),
@@ -53,7 +56,7 @@ async def pre_saved_otp(uow, target_phone, valid_session_id):
 
 @pytest.mark.asyncio
 async def test_verify_success_new_user(use_case, uow, pre_saved_otp):
-    
+
     session_str = str(pre_saved_otp.session_id)
     tokens = await use_case.execute(session_id=session_str, input_code="1234")
     assert "access_token" in tokens
@@ -70,32 +73,32 @@ async def test_verify_success_new_user(use_case, uow, pre_saved_otp):
 async def test_verify_success_existing_user(use_case, uow, pre_saved_otp):
     existing_acc = Account(id=uuid.uuid4(), phone_number=pre_saved_otp.phone_number)
     await uow.accounts.add_account(existing_acc)
-    
+
     session_str = str(pre_saved_otp.session_id)
-    
-    tokens = await use_case.execute(session_id=session_str, input_code="1234")
-    
+
+    await use_case.execute(session_id=session_str, input_code="1234")
+
     assert len(uow.accounts.accounts) == 1
-    assert len(uow.user_profiles.profiles) == 0 
+    assert len(uow.user_profiles.profiles) == 0
     assert uow.committed is True
 
 @pytest.mark.asyncio
 async def test_verify_invalid_code_saves_attempts(use_case, uow, pre_saved_otp):
-    
+
     session_str = str(pre_saved_otp.session_id)
-    
+
     with pytest.raises(InvalidOTPCodeError):
-        await use_case.execute(session_id=session_str, input_code="0000") 
-        
+        await use_case.execute(session_id=session_str, input_code="0000")
+
     assert uow.committed is True
     assert pre_saved_otp.attempts_count == 1
-    
+
     assert len(uow.accounts.accounts) == 0
 
 @pytest.mark.asyncio
 async def test_verify_session_not_found(use_case, uow):
-    
+
     fake_session = str(uuid.uuid4())
-    
+
     with pytest.raises(DomainException, match="OTP session not found"):
         await use_case.execute(session_id=fake_session, input_code="1234")

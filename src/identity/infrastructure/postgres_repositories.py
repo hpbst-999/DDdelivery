@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +13,7 @@ from src.identity.infrastructure.models import (
     AccountModel,
     OTPModel,
     RefreshTokenModel,
-    UserProfileModel
+    UserProfileModel,
 )
 
 
@@ -35,7 +34,7 @@ class SQLAlchemyAccountRepository:
 
         if not model:
             return None
-            
+
         return self._to_entity(model)
 
     async def get_account_by_phone(self, phone_number: PhoneNumber) -> Account | None:
@@ -45,17 +44,17 @@ class SQLAlchemyAccountRepository:
 
         if not model:
             return None
-            
+
         return self._to_entity(model)
 
     async def get_account_by_email(self, email: Email) -> Account | None:
         stmt = select(AccountModel).where(AccountModel.email == email)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
-        
+
         if not model:
             return None
-            
+
         return self._to_entity(model)
 
     async def add_account(self, account: Account) -> None:
@@ -104,12 +103,12 @@ class SQLAlchemyUserProfileRepository:
 
         if not model:
             return None
-            
+
         return self._to_entity(model)
 
     async def add_user(self, profile: UserProfile) -> None:
         model = UserProfileModel(
-            id=profile.id, 
+            id=profile.id,
             account_id = profile.account_id,
             name=profile.name,
             address=profile.address

@@ -5,7 +5,7 @@ from src.courier.domain.entities.courier_profile import CourierProfile
 
 
 class CreateCourierUseCase:
-    
+
     def __init__(self,  uow: IUnitOfWork):
         self.uow = uow
 
@@ -20,4 +20,3 @@ class CreateCourierUseCase:
 
             await self.uow.commit()
 
-            

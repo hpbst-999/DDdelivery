@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from src.identity.presentation.api.routes import router as identity_router
+
 from src.courier.presentation.api.routes import router as courier_router
+from src.identity.presentation.api.routes import router as identity_router
 
 app = FastAPI()
 

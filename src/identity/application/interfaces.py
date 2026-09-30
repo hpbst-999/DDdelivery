@@ -1,15 +1,15 @@
 import uuid
 from datetime import datetime
-from typing import Protocol, TypedDict, Any
+from typing import Any, Protocol
 
 from src.identity.application.dtos.oauth_user import OAuthUser
+from src.identity.application.dtos.token_pair import TokenPair
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.value_objects.email import Email
 from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.outbox.application.interfaces import IOutboxRepository
-from src.identity.application.dtos.token_pair import TokenPair
 
 
 class IOTPRepository(Protocol):
@@ -17,9 +17,9 @@ class IOTPRepository(Protocol):
         ...
     async def get_otp_by_session(self, session_id: str) -> OTP| None:
         ...
-    async def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP| None: 
+    async def get_latest_otp_by_phone(self, phone: PhoneNumber) -> OTP| None:
         ...
-    async def update_otp(self, otp: OTP) -> None: 
+    async def update_otp(self, otp: OTP) -> None:
         ...
 
 
@@ -98,5 +98,5 @@ class ICacheRepository(Protocol):
 class IOAuthServiceFactory(Protocol):
     def get_service(self, provider: str) -> IOAuthService:
         ...
-    
-    
+
+

@@ -1,15 +1,17 @@
 from collections.abc import AsyncGenerator
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.database import SessionFactory
 
+from src.core.database import SessionFactory
+from src.courier.application.interfaces import IUnitOfWork
+from src.courier.application.use_cases.change_status import ChangeCourierStatusUseCase
+from src.courier.application.use_cases.create_courier import CreateCourierUseCase
 from src.courier.application.use_cases.delete_courier import DeleteCourierUseCase
 from src.courier.application.use_cases.get_courier_profile import GetCourierProfileUseCase
 from src.courier.application.use_cases.update_courier_profile import UpdateCourierProfileUseCase
-from src.courier.application.use_cases.create_courier import CreateCourierUseCase
-from src.courier.application.use_cases.change_status import ChangeCourierStatusUseCase
-from src.courier.application.interfaces import IUnitOfWork
 from src.courier.infrastructure.uow import SQLAlchemyUnitOfWork
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with SessionFactory() as session:

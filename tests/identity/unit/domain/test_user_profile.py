@@ -1,12 +1,12 @@
 import uuid
+
 import pytest
 
-from src.identity.domain.entities.user_profile import UserProfile  # Замени на свой путь импорта
+from src.identity.domain.entities.user_profile import UserProfile
 
 
 @pytest.fixture
 def profile_data():
-    """Фикстура с тестовыми данными для профиля."""
     return {
         "id": uuid.uuid4(),
         "account_id": uuid.uuid4(),
@@ -16,7 +16,6 @@ def profile_data():
 
 
 def test_user_profile_creation(profile_data):
-    """Тест: Профиль успешно создается со всеми переданными данными."""
     profile = UserProfile(
         id=profile_data["id"],
         account_id=profile_data["account_id"],
@@ -31,10 +30,9 @@ def test_user_profile_creation(profile_data):
 
 
 def test_user_profile_creation_with_none_values():
-    """Тест: Профиль успешно создается, если опциональные поля (name, address) равны None."""
     profile_id = uuid.uuid4()
     account_id = uuid.uuid4()
-    
+
     profile = UserProfile(id=profile_id, account_id=account_id)
 
     assert profile.id == profile_id
@@ -44,9 +42,8 @@ def test_user_profile_creation_with_none_values():
 
 
 def test_user_profile_to_dict(profile_data):
-    """Тест: Метод to_dict правильно преобразует UUID в строки."""
     profile = UserProfile(**profile_data)
-    
+
     data = profile.to_dict()
 
     assert data["id"] == str(profile_data["id"])
@@ -56,10 +53,9 @@ def test_user_profile_to_dict(profile_data):
 
 
 def test_user_profile_from_dict():
-    """Тест: Метод from_dict правильно собирает объект, конвертируя строки обратно в UUID."""
     profile_id_str = str(uuid.uuid4())
     account_id_str = str(uuid.uuid4())
-    
+
     data = {
         "id": profile_id_str,
         "account_id": account_id_str,
@@ -71,20 +67,18 @@ def test_user_profile_from_dict():
 
     assert isinstance(profile.id, uuid.UUID)
     assert str(profile.id) == profile_id_str
-    
+
     assert isinstance(profile.account_id, uuid.UUID)
     assert str(profile.account_id) == account_id_str
-    
+
     assert profile.name == "Петр Петров"
     assert profile.address == "г. Казань"
 
 
 def test_user_profile_from_dict_missing_optional_keys():
-    """Тест: Метод from_dict не падает, если в словаре нет ключей name и address."""
     profile_id_str = str(uuid.uuid4())
     account_id_str = str(uuid.uuid4())
-    
-    # Имитируем словарь, в котором вообще нет ключей name и address (например, пришел неполный JSON)
+
     data = {
         "id": profile_id_str,
         "account_id": account_id_str,
@@ -94,6 +88,5 @@ def test_user_profile_from_dict_missing_optional_keys():
 
     assert str(profile.id) == profile_id_str
     assert str(profile.account_id) == account_id_str
-    # Благодаря использованию data.get() в классе, эти поля безопасно станут None
     assert profile.name is None
     assert profile.address is None

@@ -1,11 +1,12 @@
 import uuid
 
+
 class UserProfile:
     def __init__(
-        self, 
-        id: uuid.UUID, 
+        self,
+        id: uuid.UUID,
         account_id: uuid.UUID,
-        name: str | None = None, 
+        name: str | None = None,
         address: str | None = None
     ):
         self.id = id
@@ -20,12 +21,12 @@ class UserProfile:
             "name": self.name,
             "address": self.address
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "UserProfile":
         return cls(
             id=uuid.UUID(data["id"]),
             account_id=uuid.UUID(data["account_id"]),
-            name=data.get("name"),    
+            name=data.get("name"),
             address=data.get("address")
         )

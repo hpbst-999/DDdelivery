@@ -34,9 +34,9 @@ class RequestOTPUseCase:
                 payload={
                     "phone_number": new_otp.phone_number,
                     "code": new_otp.code,})
-            
+
             await self.uow.outbox.add(outbox_event)
 
             await self.uow.commit()
-        
+
         return new_otp.session_id

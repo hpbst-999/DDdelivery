@@ -1,6 +1,8 @@
 import uuid
+
 from src.courier.application.interfaces import IUnitOfWork
 from src.courier.domain.value_objects.enums import CourierStatus
+
 
 class ChangeCourierStatusUseCase:
     def __init__(self, uow: IUnitOfWork):
@@ -12,7 +14,7 @@ class ChangeCourierStatusUseCase:
             if not profile:
                 raise ValueError("Coureir profile not found.")
             if profile.status == target_status:
-                return 
+                return
 
             if profile.status == CourierStatus.BUSY and target_status == CourierStatus.OFFLINE:
                 raise ValueError("You cannot complete the shift while you have an active order")
@@ -20,6 +22,6 @@ class ChangeCourierStatusUseCase:
                 raise ValueError("The BUSY status is set by the system")
 
             profile.status = target_status
-            
+
             await self.uow.courier_profiles.update_courier(profile)
             await self.uow.commit()

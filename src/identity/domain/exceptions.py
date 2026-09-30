@@ -6,9 +6,9 @@ class OTPVerificationFailedError(DomainException):
 
 class InvalidCoordinatesError(DomainException):
     pass
-class AccountNotFoundError(DomainException): 
+class AccountNotFoundError(DomainException):
     pass
-class ProfileNotFoundError(DomainException): 
+class ProfileNotFoundError(DomainException):
     pass
 class SessionNotFoundError(DomainException):
     pass

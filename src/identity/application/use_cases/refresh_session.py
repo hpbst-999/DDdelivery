@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from src.identity.application.interfaces import IUnitOfWork, ITokenService, TokenPair
+from src.identity.application.interfaces import ITokenService, IUnitOfWork, TokenPair
 from src.identity.domain.exceptions import DomainException, SessionNotFoundError
 
 
@@ -15,13 +15,13 @@ class RefreshSessionUseCase:
             self.token_service.validate_refresh_token(raw_refresh_token)
         except ValueError as e:
             raise DomainException(str(e))
-        
+
         async with self.uow:
             session_data = await self.uow.refresh_tokens.get_data_by_token(raw_refresh_token)
             if not session_data:
                 raise SessionNotFoundError("Session not found.")
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if session_data.expires_at <= now:
                 await self.uow.refresh_tokens.revoke_token(raw_refresh_token)
                 await self.uow.commit()
@@ -32,7 +32,7 @@ class RefreshSessionUseCase:
             account_id = session_data.account_id
             new_tokens = self.token_service.generate_pair(account_id=account_id)
             token_id = uuid.uuid4()
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+            expires_at = datetime.now(UTC) + timedelta(days=30)
 
             await self.uow.refresh_tokens.save_refresh_token(
                 id=token_id,

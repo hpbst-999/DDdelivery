@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CourierStatus(str, Enum):
+class CourierStatus(StrEnum):
     OFFLINE = "offline"
     ONLINE = "online"
     BUSY = "busy"

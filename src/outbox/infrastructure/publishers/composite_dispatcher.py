@@ -1,5 +1,5 @@
-from typing import Any, Callable, Awaitable
-import uuid
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 EventHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
@@ -14,5 +14,5 @@ class EventDispatcher:
         handler = self._handlers.get(type)
         if not handler:
             raise ValueError(f"No handler registered for event type: '{type}'")
-        
+
         await handler(payload)

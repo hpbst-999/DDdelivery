@@ -1,4 +1,4 @@
-from src.outbox.application.interfaces import IOutboxUnitOfWork, IMessagePublisher
+from src.outbox.application.interfaces import IMessagePublisher, IOutboxUnitOfWork
 
 
 class ProcessOutboxBatchUseCase:
@@ -24,5 +24,5 @@ class ProcessOutboxBatchUseCase:
                     print(str(e))
                     message.event_failed()
                 await self.uow.outbox.update(message)
-                
+
         return len(messages)

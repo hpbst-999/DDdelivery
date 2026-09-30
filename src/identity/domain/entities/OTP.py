@@ -1,18 +1,18 @@
 import uuid
-import random
-from typing import Callable
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 
-from src.identity.domain.value_objects.phone_number import PhoneNumber
 from src.identity.domain.exceptions import (
+    InvalidOTPCodeError,
     OTPExpiredError,
     OTPMaxAttemptsExceededError,
-    InvalidOTPCodeError
 )
 from src.identity.domain.services.otp_generator import OTPCodeGenerator
+from src.identity.domain.value_objects.phone_number import PhoneNumber
+
 
 class OTP:
-    def __init__(self, session_id: uuid.UUID, phone_number: PhoneNumber, code: str, 
+    def __init__(self, session_id: uuid.UUID, phone_number: PhoneNumber, code: str,
                 created_at: datetime, expires_at: datetime,attempts_count: int = 0,
                 max_attempts: int = 3, is_used: bool = False):
         self.session_id = session_id
@@ -23,7 +23,7 @@ class OTP:
         self.attempts_count = attempts_count
         self.max_attempts = max_attempts
         self.is_used = is_used
-        
+
 
     @classmethod
     def generate_otp(cls, phone: PhoneNumber, code_generator: Callable[[], str] = OTPCodeGenerator.generate_random,ttl_min: int = 10, max_attempts = 3) -> "OTP":
@@ -31,18 +31,18 @@ class OTP:
             session_id=uuid.uuid4(),
             phone_number=phone,
             code=code_generator(),
-            created_at = datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=ttl_min),
+            created_at = datetime.now(UTC),
+            expires_at=datetime.now(UTC) + timedelta(minutes=ttl_min),
             attempts_count = 0,
             max_attempts = max_attempts,
             is_used = False
         )
 
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.now(UTC) > self.expires_at
 
     def can_resend(self, cooldown_seconds: int = 60) -> bool:
-        interval = (datetime.now(timezone.utc) - self.created_at).total_seconds()
+        interval = (datetime.now(UTC) - self.created_at).total_seconds()
         return interval >= cooldown_seconds
 
     def verify(self, input_code: str):
@@ -61,4 +61,4 @@ class OTP:
 
         self.is_used = True
 
-        
+

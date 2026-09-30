@@ -1,12 +1,12 @@
 import uuid
 
-from src.identity.application.interfaces import IUnitOfWork, ICacheRepository
+from src.identity.application.interfaces import ICacheRepository, IUnitOfWork
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.exceptions import ProfileNotFoundError
 
 
 class UpdateUserProfileUseCase:
-    
+
     def __init__(self, uow: IUnitOfWork, cache: ICacheRepository):
         self.uow = uow
         self.cache = cache
@@ -19,14 +19,14 @@ class UpdateUserProfileUseCase:
 
             if name is not None:
                 profile.name = name
-                
+
             if address is not None:
                 profile.address = address
 
             await self.uow.user_profiles.update_user(profile)
 
             await self.uow.commit()
-            
+
         cache_key = f"user_profile:{profile.id}"
         await self.cache.delete(cache_key)
 
