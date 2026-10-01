@@ -21,27 +21,24 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 def get_uow(session: AsyncSession = Depends(get_db)) -> IUnitOfWork:
     return SQLAlchemyUnitOfWork(session=session)
 
+
 def get_update_courier_profile_use_case(
     uow: IUnitOfWork = Depends(get_uow)
 ) -> UpdateCourierProfileUseCase:
     return UpdateCourierProfileUseCase(uow=uow)
 
-def get_delete_courier_use_case(
-    uow: IUnitOfWork = Depends(get_uow)
-) -> DeleteCourierUseCase:
+
+def get_delete_courier_use_case(uow: IUnitOfWork = Depends(get_uow)) -> DeleteCourierUseCase:
     return DeleteCourierUseCase(uow=uow)
 
-def get_courier_profile_use_case(
-    uow: IUnitOfWork = Depends(get_uow)
-) -> GetCourierProfileUseCase:
+
+def get_courier_profile_use_case(uow: IUnitOfWork = Depends(get_uow)) -> GetCourierProfileUseCase:
     return GetCourierProfileUseCase(uow=uow)
 
-def get_create_courier_use_case(
-    uow: IUnitOfWork = Depends(get_uow)
-)-> CreateCourierUseCase:
+
+def get_create_courier_use_case(uow: IUnitOfWork = Depends(get_uow)) -> CreateCourierUseCase:
     return CreateCourierUseCase(uow=uow)
 
-async def get_change_courier_status_use_case(
-    uow = Depends(get_uow)
-) -> ChangeCourierStatusUseCase:
+
+async def get_change_courier_status_use_case(uow=Depends(get_uow)) -> ChangeCourierStatusUseCase:
     return ChangeCourierStatusUseCase(uow=uow)

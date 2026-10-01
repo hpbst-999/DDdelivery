@@ -15,9 +15,11 @@ from tests.identity.fakes.fake_uow import FakeUnitOfWork
 def uow():
     return FakeUnitOfWork()
 
+
 @pytest.fixture
 def use_case(uow):
     return RequestOTPUseCase(uow=uow)
+
 
 @pytest.fixture
 def target_phone():
@@ -42,7 +44,9 @@ async def test_request_otp_first_time_success(use_case, uow, target_phone):
 
 
 @pytest.mark.asyncio
-@patch("src.identity.domain.entities.OTP.datetime") # Укажи точный путь до datetime в твоем файле OTP.py
+@patch(
+    "src.identity.domain.entities.OTP.datetime"
+)  # Укажи точный путь до datetime в твоем файле OTP.py
 async def test_request_otp_rate_limit_error(mock_datetime, use_case, uow, target_phone):
     now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     mock_datetime.now.return_value = now
@@ -56,7 +60,9 @@ async def test_request_otp_rate_limit_error(mock_datetime, use_case, uow, target
 
 @pytest.mark.asyncio
 @patch("src.identity.domain.entities.OTP.datetime")
-async def test_request_otp_after_cooldown_invalidates_old_otp(mock_datetime, use_case, uow, target_phone):
+async def test_request_otp_after_cooldown_invalidates_old_otp(
+    mock_datetime, use_case, uow, target_phone
+):
     past_time = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     mock_datetime.now.return_value = past_time
     old_otp = OTP.generate_otp(phone=PhoneNumber(target_phone))

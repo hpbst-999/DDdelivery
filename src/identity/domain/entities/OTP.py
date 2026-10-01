@@ -12,9 +12,17 @@ from src.identity.domain.value_objects.phone_number import PhoneNumber
 
 
 class OTP:
-    def __init__(self, session_id: uuid.UUID, phone_number: PhoneNumber, code: str,
-                created_at: datetime, expires_at: datetime,attempts_count: int = 0,
-                max_attempts: int = 3, is_used: bool = False):
+    def __init__(
+        self,
+        session_id: uuid.UUID,
+        phone_number: PhoneNumber,
+        code: str,
+        created_at: datetime,
+        expires_at: datetime,
+        attempts_count: int = 0,
+        max_attempts: int = 3,
+        is_used: bool = False,
+    ):
         self.session_id = session_id
         self.phone_number = phone_number
         self.code = code
@@ -24,18 +32,23 @@ class OTP:
         self.max_attempts = max_attempts
         self.is_used = is_used
 
-
     @classmethod
-    def generate_otp(cls, phone: PhoneNumber, code_generator: Callable[[], str] = OTPCodeGenerator.generate_random,ttl_min: int = 10, max_attempts = 3) -> "OTP":
+    def generate_otp(
+        cls,
+        phone: PhoneNumber,
+        code_generator: Callable[[], str] = OTPCodeGenerator.generate_random,
+        ttl_min: int = 10,
+        max_attempts=3,
+    ) -> "OTP":
         return cls(
             session_id=uuid.uuid4(),
             phone_number=phone,
             code=code_generator(),
-            created_at = datetime.now(UTC),
+            created_at=datetime.now(UTC),
             expires_at=datetime.now(UTC) + timedelta(minutes=ttl_min),
-            attempts_count = 0,
-            max_attempts = max_attempts,
-            is_used = False
+            attempts_count=0,
+            max_attempts=max_attempts,
+            is_used=False,
         )
 
     def is_expired(self) -> bool:
@@ -57,8 +70,8 @@ class OTP:
 
         if self.code != input_code:
             self.attempts_count += 1
-            raise InvalidOTPCodeError(f"Invalid code. Attempts left: {self.max_attempts - self.attempts_count}")
+            raise InvalidOTPCodeError(
+                f"Invalid code. Attempts left: {self.max_attempts - self.attempts_count}"
+            )
 
         self.is_used = True
-
-

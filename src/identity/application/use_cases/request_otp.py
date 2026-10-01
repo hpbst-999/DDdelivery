@@ -33,7 +33,9 @@ class RequestOTPUseCase:
                 type="identity.otp_created",
                 payload={
                     "phone_number": new_otp.phone_number,
-                    "code": new_otp.code,})
+                    "code": new_otp.code,
+                },
+            )
 
             await self.uow.outbox.add(outbox_event)
 

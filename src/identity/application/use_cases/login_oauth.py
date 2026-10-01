@@ -9,7 +9,7 @@ from src.identity.domain.value_objects.email import Email
 
 
 class LoginWithOAuthUseCase:
-    def __init__(self, uow: IUnitOfWork,token_service: ITokenService):
+    def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
         self.uow = uow
         self.token_service = token_service
 
@@ -23,12 +23,11 @@ class LoginWithOAuthUseCase:
 
             else:
                 account_id = uuid.uuid4()
-                account = Account(
-                    id=account_id,
-                    email=email
-                )
+                account = Account(id=account_id, email=email)
                 user_profile_id = uuid.uuid4()
-                user_profile = UserProfile(id=user_profile_id, account_id=account.id,name=user_info.name)
+                user_profile = UserProfile(
+                    id=user_profile_id, account_id=account.id, name=user_info.name
+                )
                 await self.uow.accounts.add_account(account)
                 await self.uow.user_profiles.add_user(user_profile)
                 account_id = str(account.id)
@@ -38,11 +37,11 @@ class LoginWithOAuthUseCase:
             expires_at = datetime.now(UTC) + timedelta(days=30)
 
             await self.uow.refresh_tokens.save_refresh_token(
-                    id=token_id,
-                    account_id=account_id,
-                    refresh_token=tokens["refresh_token"],
-                    expires_at=expires_at,
-                    created_at = datetime.now(UTC)
-                )
+                id=token_id,
+                account_id=account_id,
+                refresh_token=tokens["refresh_token"],
+                expires_at=expires_at,
+                created_at=datetime.now(UTC),
+            )
             await self.uow.commit()
         return tokens

@@ -12,6 +12,7 @@ from tests.identity.fakes.fake_uow import FakeUnitOfWork
 async def uow():
     return FakeUnitOfWork()
 
+
 @pytest.fixture
 def use_case(uow):
     return LogoutUseCase(uow=uow)
@@ -27,7 +28,7 @@ async def test_logout_success_revokes_token(use_case, uow):
         account_id=uuid.uuid4(),
         refresh_token=refresh_token_str,
         expires_at=datetime.now(UTC) + timedelta(days=30),
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
     )
 
     assert len(uow.refresh_tokens.tokens) == 1

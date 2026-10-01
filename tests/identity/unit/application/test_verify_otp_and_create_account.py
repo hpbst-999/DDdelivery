@@ -18,28 +18,34 @@ class FakeTokenService:
     def generate_pair(self, account_id: str) -> dict:
         return {
             "access_token": f"access_for_{account_id}",
-            "refresh_token": f"refresh_for_{account_id}"
+            "refresh_token": f"refresh_for_{account_id}",
         }
+
 
 @pytest.fixture
 def uow():
     return FakeUnitOfWork()
 
+
 @pytest.fixture
 def token_service():
     return FakeTokenService()
+
 
 @pytest.fixture
 def use_case(uow, token_service):
     return VerifyOTPAndCreateAccountUseCase(uow=uow, token_service=token_service)
 
+
 @pytest.fixture
 def target_phone():
     return "+79991234567"
 
+
 @pytest.fixture
 def valid_session_id():
     return uuid.uuid4()
+
 
 @pytest_asyncio.fixture
 async def pre_saved_otp(uow, target_phone, valid_session_id):
@@ -49,10 +55,11 @@ async def pre_saved_otp(uow, target_phone, valid_session_id):
         phone_number=PhoneNumber(target_phone),
         code="1234",
         created_at=now,
-        expires_at=now + timedelta(minutes=10)
+        expires_at=now + timedelta(minutes=10),
     )
     await uow.otp.save_otp(otp)
     return otp
+
 
 @pytest.mark.asyncio
 async def test_verify_success_new_user(use_case, uow, pre_saved_otp):
@@ -69,6 +76,7 @@ async def test_verify_success_new_user(use_case, uow, pre_saved_otp):
     assert pre_saved_otp.is_used is True
     assert uow.committed is True
 
+
 @pytest.mark.asyncio
 async def test_verify_success_existing_user(use_case, uow, pre_saved_otp):
     existing_acc = Account(id=uuid.uuid4(), phone_number=pre_saved_otp.phone_number)
@@ -82,6 +90,7 @@ async def test_verify_success_existing_user(use_case, uow, pre_saved_otp):
     assert len(uow.user_profiles.profiles) == 0
     assert uow.committed is True
 
+
 @pytest.mark.asyncio
 async def test_verify_invalid_code_saves_attempts(use_case, uow, pre_saved_otp):
 
@@ -94,6 +103,7 @@ async def test_verify_invalid_code_saves_attempts(use_case, uow, pre_saved_otp):
     assert pre_saved_otp.attempts_count == 1
 
     assert len(uow.accounts.accounts) == 0
+
 
 @pytest.mark.asyncio
 async def test_verify_session_not_found(use_case, uow):

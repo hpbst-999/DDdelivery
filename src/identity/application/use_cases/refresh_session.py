@@ -39,7 +39,7 @@ class RefreshSessionUseCase:
                 account_id=account_id,
                 refresh_token=new_tokens["refresh_token"],
                 expires_at=expires_at,
-                created_at = now
+                created_at=now,
             )
 
             await self.uow.commit()

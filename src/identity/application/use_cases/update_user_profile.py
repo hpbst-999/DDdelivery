@@ -6,14 +6,15 @@ from src.identity.domain.exceptions import ProfileNotFoundError
 
 
 class UpdateUserProfileUseCase:
-
     def __init__(self, uow: IUnitOfWork, cache: ICacheRepository):
         self.uow = uow
         self.cache = cache
 
-    async def execute(self, id: uuid.UUID, name: str | None = None, address: str | None = None) -> UserProfile:
+    async def execute(
+        self, account_id: uuid.UUID, name: str | None = None, address: str | None = None
+    ) -> UserProfile:
         async with self.uow:
-            profile = await self.uow.user_profiles.get_user_by_id(id)
+            profile = await self.uow.user_profiles.get_user_by_account_id(account_id)
             if not profile:
                 raise ProfileNotFoundError("User profile not found")
 
@@ -27,7 +28,7 @@ class UpdateUserProfileUseCase:
 
             await self.uow.commit()
 
-        cache_key = f"user_profile:{profile.id}"
+        cache_key = f"user_profile:{profile.account_id}"
         await self.cache.delete(cache_key)
 
         return profile

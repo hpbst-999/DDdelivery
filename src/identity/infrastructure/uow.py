@@ -13,7 +13,7 @@ class SQLAlchemyUnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "SQLAlchemyUnitOfWork":
         self.otp = SQLAlchemyOTPRepository(self.session)
         self.accounts = SQLAlchemyAccountRepository(self.session)
         self.user_profiles = SQLAlchemyUserProfileRepository(self.session)
@@ -21,14 +21,14 @@ class SQLAlchemyUnitOfWork:
         self.outbox = SQLAlchemyOutboxRepository(self.session)
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         if exc_type:
             await self.rollback()
         else:
             await self.commit()
 
-    async def commit(self):
+    async def commit(self) -> None:
         await self.session.commit()
 
-    async def rollback(self):
+    async def rollback(self) -> None:
         await self.session.rollback()

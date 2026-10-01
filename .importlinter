@@ -1,40 +1,252 @@
 [importlinter]
-root_package = src
+root_packages =
+    src
+include_external_packages = True
+
 
 # ====================================================================
-# КОНТРАКТ 1: Изоляция ограниченных контекстов (Bounded Contexts)
+# 1. ИЗОЛЯЦИЯ ОГРАНИЧЕННЫХ КОНТЕКСТОВ (Bounded Contexts)
 # ====================================================================
-[importlinter:contract:1]
-name = Bounded Contexts Independence
+# Контексты общаются только через события (outbox), но не напрямую.
+[importlinter:contract:bounded-contexts]
+name = Bounded contexts are independent
 type = independence
 modules =
     src.identity
     src.courier
-; ignore_imports =
-;     # Прагматичное исключение: разрешаем слою Presentation в Courier 
-;     # импортировать зависимости авторизации (запрос текущего юзера) из Identity
-;     src.courier.presentation.* -> src.identity.presentation.*
+broken_contract_guidance =
+    Контексты не должны знать друг о друге. Варианты:
+      * нужна авторизация в другом контексте -> вынести валидацию JWT
+        в shared kernel (src.core.auth), который возвращает CurrentUser(account_id),
+        вместо импорта src.identity.presentation;
+      * нужны данные другого контекста -> подписаться на событие через src.outbox.
+
 
 # ====================================================================
-# КОНТРАКТ 2: Строгие слои DDD для модуля Identity
+# 2. СЛОИ DDD ВНУТРИ КАЖДОГО КОНТЕКСТА
 # ====================================================================
-[importlinter:contract:2]
-name = DDD Layers for Identity
+# exhaustive = true: новый каталог внутри контекста (например src/identity/api/)
+# сломает контракт, пока его явно не внесут в список слоёв.
+[importlinter:contract:ddd-layers]
+name = DDD layers in every module
 type = layers
+containers =
+    src.identity
+    src.courier
+    src.outbox
 layers =
-    src.identity.presentation
-    src.identity.infrastructure
-    src.identity.application
+    (presentation)
+    infrastructure
+    application
+    domain
+exhaustive = true
+broken_contract_guidance =
+    Поток зависимостей строго вниз: presentation -> infrastructure -> application -> domain.
+    Если domain или application потребовалась инфраструктура, объявите Protocol
+    в application.interfaces и реализуйте его в infrastructure (DIP).
+
+
+# ====================================================================
+# 3. ЧИСТОТА DOMAIN: никаких фреймворков и глобального конфига
+# ====================================================================
+[importlinter:contract:domain-purity]
+name = Domain is free of frameworks and I/O
+type = forbidden
+source_modules =
     src.identity.domain
+    src.courier.domain
+    src.outbox.domain
+forbidden_modules =
+    fastapi
+    starlette
+    sqlalchemy
+    asyncpg
+    alembic
+    redis
+    httpx
+    jwt
+    pydantic
+    pydantic_settings
+    src.core
+broken_contract_guidance =
+    Domain описывает правила предметной области и не зависит от того, как данные
+    хранятся и отдаются. Перенесите код в infrastructure, а в domain оставьте
+    чистые сущности, value objects и доменные сервисы.
+
 
 # ====================================================================
-# КОНТРАКТ 3: Строгие слои DDD для модуля Courier
+# 4. ЧИСТОТА APPLICATION: оркестрация без деталей реализации
 # ====================================================================
-[importlinter:contract:3]
-name = DDD Layers for Courier
-type = layers
-layers =
-    src.courier.presentation
-    src.courier.infrastructure
+[importlinter:contract:application-purity]
+name = Application depends on abstractions only
+type = forbidden
+source_modules =
+    src.identity.application
     src.courier.application
+    src.outbox.application
+forbidden_modules =
+    fastapi
+    starlette
+    sqlalchemy
+    asyncpg
+    redis
+    httpx
+    jwt
+    src.core
+broken_contract_guidance =
+    Use case не знает ни про HTTP, ни про SQL, ни про Redis. Нужна зависимость -
+    опишите её как Protocol в application.interfaces и внедрите через конструктор.
+    Конкретную реализацию собирайте в presentation.dependencies (composition root).
+
+
+# ====================================================================
+# 5. SHARED KERNEL И ГЕНЕРИЧЕСКИЕ МОДУЛИ НЕ ЗНАЮТ О КОНТЕКСТАХ
+# ====================================================================
+[importlinter:contract:shared-knows-nothing]
+name = Shared and generic modules do not depend on contexts
+type = forbidden
+source_modules =
+    src.core
+    src.outbox
+forbidden_modules =
+    src.identity
+    src.courier
+    src.workers
+broken_contract_guidance =
+    src.core и src.outbox - переиспользуемые механизмы. Зависимость от конкретного
+    контекста делает их частью этого контекста. Передавайте данные параметрами
+    (например тип события строкой), а не импортом.
+
+
+# ====================================================================
+# 6. ТОЧКИ ВХОДА: их не импортирует никто
+# ====================================================================
+[importlinter:contract:entrypoints]
+name = Entrypoints are imported by nobody
+type = protected
+protected_modules =
+    src.workers
+allowed_importers =
+    src.workers
+broken_contract_guidance =
+    src.workers и main.py - composition root приложения. Если оттуда нужен код,
+    перенесите его в соответствующий слой контекста.
+
+
+# ====================================================================
+# 7. ORM-МОДЕЛИ И РЕПОЗИТОРИИ НЕ ВЫТЕКАЮТ ИЗ INFRASTRUCTURE
+# ====================================================================
+# Контракт слоёв (2) разрешает presentation -> infrastructure, потому что в
+# dependencies.py собирается composition root. Этот контракт закрывает дыру:
+# роуты не должны работать с ORM-моделями и репозиториями напрямую.
+[importlinter:contract:orm-stays-in-infrastructure]
+name = ORM models and repositories stay inside infrastructure
+type = protected
+protected_modules =
+    src.identity.infrastructure.models
+    src.identity.infrastructure.postgres_repositories
+    src.courier.infrastructure.models
+    src.courier.infrastructure.postgres_repositories
+    src.outbox.infrastructure.models
+    src.outbox.infrastructure.postgres_repository
+allowed_importers =
+    src.identity.infrastructure
+    src.courier.infrastructure
+    src.outbox.infrastructure
+broken_contract_guidance =
+    Наружу из infrastructure отдаются доменные сущности, а не ORM-модели.
+    Роутам и use case положено ходить через UnitOfWork и Protocol-интерфейсы.
+
+
+# ====================================================================
+# 8. OUTBOX: ПУБЛИЧНЫЙ КОНТРАКТ МЕХАНИЗМА
+# ====================================================================
+# Контексты складывают события через интерфейс, но не запускают обработку сами.
+[importlinter:contract:outbox-public-api]
+name = Outbox internals are private
+type = protected
+protected_modules =
+    src.outbox.application.use_cases
+    src.outbox.infrastructure
+allowed_importers =
+    src.outbox
+    src.workers
+    src.identity.infrastructure
+    src.courier.infrastructure
+broken_contract_guidance =
+    Контекст пишет событие через src.outbox.application.interfaces.IOutboxRepository.
+    Доставку выполняет воркер (src.workers), а не use case контекста.
+
+
+# ====================================================================
+# 9. СЛОИ ВНУТРИ APPLICATION
+# ====================================================================
+[importlinter:contract:application-internals]
+name = Application internal layers
+type = layers
+containers =
+    src.identity.application
+    src.courier.application
+    src.outbox.application
+layers =
+    use_cases
+    interfaces
+    (dtos)
+exhaustive = true
+broken_contract_guidance =
+    interfaces и dtos - контракт слоя, они не знают о конкретных use case.
+
+
+# ====================================================================
+# 10. СЛОИ ВНУТРИ DOMAIN
+# ====================================================================
+[importlinter:contract:domain-internals]
+name = Domain internal layers
+type = layers
+containers =
+    src.identity.domain
     src.courier.domain
+layers =
+    entities
+    (services)
+    value_objects
+    exceptions
+exhaustive = true
+broken_contract_guidance =
+    Value object - самодостаточный примитив: он не знает ни про сущности,
+    ни про доменные сервисы.
+
+
+# ====================================================================
+# 11. СЛОИ ВНУТРИ PRESENTATION
+# ====================================================================
+[importlinter:contract:presentation-internals]
+name = Presentation internal layers
+type = layers
+containers =
+    src.identity.presentation
+    src.courier.presentation
+layers =
+    api
+    (security)
+    dependencies
+exhaustive = true
+broken_contract_guidance =
+    dependencies - composition root слоя, он не импортирует роуты.
+
+
+# ====================================================================
+# 12. ОТСУТСТВИЕ ЦИКЛОВ МЕЖДУ МОДУЛЯМИ-СОСЕДЯМИ
+# ====================================================================
+[importlinter:contract:no-cycles]
+name = No circular dependencies between sibling modules
+type = acyclic_siblings
+ancestors =
+    src
+    src.identity
+    src.courier
+    src.outbox
+    src.core
+broken_contract_guidance =
+    Цикл означает, что два модуля - фактически один. Разорвите его, вынеся
+    общую часть вниз или объявив Protocol на стороне потребителя.

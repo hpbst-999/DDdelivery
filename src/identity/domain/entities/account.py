@@ -6,10 +6,7 @@ from src.identity.domain.value_objects.phone_number import PhoneNumber
 
 class Account:
     def __init__(
-        self,
-        id: uuid.UUID,
-        phone_number: PhoneNumber | None  = None,
-        email: Email | None = None
+        self, id: uuid.UUID, phone_number: PhoneNumber | None = None, email: Email | None = None
     ):
         self.id = id
         self.phone_number = phone_number

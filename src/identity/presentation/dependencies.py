@@ -1,8 +1,6 @@
 from collections.abc import AsyncGenerator
-from uuid import UUID
 
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
@@ -23,7 +21,6 @@ from src.identity.application.use_cases.update_user_profile import UpdateUserPro
 from src.identity.application.use_cases.verify_otp_and_create_account import (
     VerifyOTPAndCreateAccountUseCase,
 )
-from src.identity.domain.entities.account import Account
 from src.identity.infrastructure.google_service import GoogleOAuthService
 from src.identity.infrastructure.oauth_factory import OAuthServiceFactory
 from src.identity.infrastructure.redis_repositories import RedisCacheRepository
@@ -40,6 +37,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 def get_uow(session: AsyncSession = Depends(get_db)) -> IUnitOfWork:
     return SQLAlchemyUnitOfWork(session=session)
 
+
 def get_token_service() -> JwtTokenService:
     return JwtTokenService(secret_key=settings.JWT_SECRET_KEY)
 
@@ -47,81 +45,42 @@ def get_token_service() -> JwtTokenService:
 def get_cache_repository() -> ICacheRepository:
     return RedisCacheRepository(redis_client=redis_client)
 
-def get_request_otp_use_case(
-    uow: IUnitOfWork = Depends(get_uow)
-) -> RequestOTPUseCase:
+
+def get_request_otp_use_case(uow: IUnitOfWork = Depends(get_uow)) -> RequestOTPUseCase:
     return RequestOTPUseCase(uow=uow)
 
+
 def get_refresh_session_use_case(
-    uow: IUnitOfWork = Depends(get_uow),
-    token_service: JwtTokenService = Depends(get_token_service)
+    uow: IUnitOfWork = Depends(get_uow), token_service: JwtTokenService = Depends(get_token_service)
 ) -> RefreshSessionUseCase:
     return RefreshSessionUseCase(uow=uow, token_service=token_service)
 
-def get_logout_use_case(
-    uow: IUnitOfWork = Depends(get_uow)
-) -> LogoutUseCase:
+
+def get_logout_use_case(uow: IUnitOfWork = Depends(get_uow)) -> LogoutUseCase:
     return LogoutUseCase(uow=uow)
 
 
 def get_verify_otp_use_case(
-    uow: IUnitOfWork = Depends(get_uow),
-    token_service: JwtTokenService = Depends(get_token_service)
+    uow: IUnitOfWork = Depends(get_uow), token_service: JwtTokenService = Depends(get_token_service)
 ) -> VerifyOTPAndCreateAccountUseCase:
-    return VerifyOTPAndCreateAccountUseCase(
-        uow=uow,
-        token_service=token_service
-    )
+    return VerifyOTPAndCreateAccountUseCase(uow=uow, token_service=token_service)
 
 
 def get_update_user_profile_use_case(
-    uow: IUnitOfWork = Depends(get_uow),
-    cache: ICacheRepository = Depends(get_cache_repository)
+    uow: IUnitOfWork = Depends(get_uow), cache: ICacheRepository = Depends(get_cache_repository)
 ) -> UpdateUserProfileUseCase:
     return UpdateUserProfileUseCase(uow=uow, cache=cache)
 
 
-def get_delete_account_use_case(
-    uow: IUnitOfWork = Depends(get_uow)
-) -> DeleteAccountUseCase:
+def get_delete_account_use_case(uow: IUnitOfWork = Depends(get_uow)) -> DeleteAccountUseCase:
     return DeleteAccountUseCase(uow=uow)
 
 
 def get_user_profile_use_case(
-    uow: IUnitOfWork = Depends(get_uow),
-    cache: ICacheRepository = Depends(get_cache_repository)
+    uow: IUnitOfWork = Depends(get_uow), cache: ICacheRepository = Depends(get_cache_repository)
 ) -> GetUserProfileUseCase:
     return GetUserProfileUseCase(uow=uow, cache=cache)
 
-security = HTTPBearer()
-async def get_current_account(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    token_service: JwtTokenService = Depends(get_token_service),
-    uow: IUnitOfWork = Depends(get_uow),
-    cache: ICacheRepository = Depends(get_cache_repository)
-) -> Account:
-    token = credentials.credentials
-    try:
-        payload = token_service.validate_access_token(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    account_id = UUID(payload.get("sub"))
-    if not account_id:
-        raise HTTPException(status_code=401, detail="No ID found in token")
-
-    cache_key = f"account:{account_id}"
-    cache_account = await cache.get(key=cache_key)
-    if cache_account:
-        return Account.from_dict(cache_account)
-
-    async with uow:
-        account = await uow.accounts.get_account_by_id(account_id)
-        if not account:
-            raise HTTPException(status_code=401, detail="Account not found")
-        await cache.set(cache_key, account.to_dict(), ttl_second=600)
-
-        return account
 
 def get_google_oauth_service() -> IOAuthService:
     return GoogleOAuthService()
@@ -130,9 +89,10 @@ def get_google_oauth_service() -> IOAuthService:
 def get_yandex_oauth_service() -> IOAuthService:
     return YandexOAuthService()
 
+
 def get_oauth_service_factory(
-    google_service: GoogleOAuthService = Depends(get_google_oauth_service),
-    yandex_service: YandexOAuthService = Depends(get_yandex_oauth_service),
+    google_service: IOAuthService = Depends(get_google_oauth_service),
+    yandex_service: IOAuthService = Depends(get_yandex_oauth_service),
 ) -> IOAuthServiceFactory:
     return OAuthServiceFactory(
         services={
@@ -141,9 +101,9 @@ def get_oauth_service_factory(
         }
     )
 
+
 def get_login_user_use_case(
     uow: IUnitOfWork = Depends(get_uow),
     token_service: JwtTokenService = Depends(get_token_service),
 ) -> LoginWithOAuthUseCase:
     return LoginWithOAuthUseCase(uow=uow, token_service=token_service)
-

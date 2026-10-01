@@ -20,7 +20,7 @@ class FakeTokenServiceWithValidation:
     def generate_pair(self, account_id: str) -> dict:
         return {
             "access_token": f"new_access_for_{account_id}",
-            "refresh_token": f"new_refresh_for_{account_id}"
+            "refresh_token": f"new_refresh_for_{account_id}",
         }
 
 
@@ -28,9 +28,11 @@ class FakeTokenServiceWithValidation:
 async def uow():
     return FakeUnitOfWork()
 
+
 @pytest.fixture
 def token_service():
     return FakeTokenServiceWithValidation()
+
 
 @pytest.fixture
 def use_case(uow, token_service):
@@ -49,7 +51,7 @@ async def test_refresh_session_success(use_case, uow, token_service):
         account_id=account_id,
         refresh_token=old_token,
         expires_at=datetime.now(UTC) + timedelta(days=10),
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
     )
 
     new_tokens = await use_case.execute(raw_refresh_token=old_token)
@@ -93,7 +95,7 @@ async def test_refresh_session_expired(use_case, uow):
         account_id=uuid.uuid4(),
         refresh_token=expired_token,
         expires_at=past_time,
-        created_at=past_time - timedelta(days=30)
+        created_at=past_time - timedelta(days=30),
     )
 
     with pytest.raises(DomainException, match="Refresh token has expired"):

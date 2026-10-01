@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 
@@ -17,7 +18,8 @@ class JwtTokenService:
         access_payload = {
             "sub": str(account_id),
             "type": "access",
-            "exp": now + timedelta(minutes=35)
+            "iat": now,
+            "exp": now + timedelta(minutes=35),
         }
         access_token = jwt.encode(access_payload, self.secret_key, algorithm=self.algorithm)
 
@@ -25,37 +27,30 @@ class JwtTokenService:
             "sub": str(account_id),
             "type": "refresh",
             "jti": str(uuid.uuid4()),
-            "exp": now + timedelta(days=30)
+            "iat": now,
+            "exp": now + timedelta(days=30),
         }
         refresh_token = jwt.encode(refresh_payload, self.secret_key, algorithm=self.algorithm)
 
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token
-        }
+        return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
-    def validate_access_token(self, token: str) -> dict:
-            try:
-                payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+    def validate_access_token(self, token: str) -> dict[str, Any]:
+        return self._validate_token(token, expected_type="access")
 
-                if payload.get("type") != "access":
-                    raise ValueError("Invalid token type.")
-                return payload
+    def validate_refresh_token(self, token: str) -> dict[str, Any]:
+        return self._validate_token(token, expected_type="refresh")
 
-            except jwt.ExpiredSignatureError:
-                raise ValueError("The Access token has expired.")
-            except jwt.InvalidTokenError:
-                raise ValueError("Invalid token.")
-
-    def validate_refresh_token(self, token: str) -> dict:
+    def _validate_token(self, token: str, expected_type: str) -> dict[str, Any]:
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
 
-            if payload.get("type") != "refresh":
-                raise ValueError("Invalid token type.")
+            if payload.get("type") != expected_type:
+                raise ValueError(f"Invalid token type. Expected {expected_type}.")
+
             return payload
 
-        except jwt.ExpiredSignatureError:
-            raise ValueError("The Refresh token has expired.")
-        except jwt.InvalidTokenError:
-            raise ValueError("Invalid token.")
+        except jwt.ExpiredSignatureError as exc:
+            raise ValueError("Token has expired.") from exc
+
+        except jwt.InvalidTokenError as exc:
+            raise ValueError("Invalid token signature or payload.") from exc

@@ -18,9 +18,9 @@ class SQLAlchemyCourierProfileRepository:
             account_id=model.account_id,
             full_name=model.full_name,
             inn=model.inn,
-            is_verified=model.is_verifed,
+            is_verified=model.is_verified,
             verified_at=model.verified_at,
-            status=CourierStatus(model.status)
+            status=CourierStatus(model.status),
         )
 
     async def get_courier_by_id(self, id: uuid.UUID) -> CourierProfile | None:
@@ -34,24 +34,24 @@ class SQLAlchemyCourierProfileRepository:
         return self._to_entity(model=model)
 
     async def get_courier_by_account_id(self, account_id: uuid.UUID) -> CourierProfile | None:
-            stmt = select(CourierProfileModel).where(CourierProfileModel.account_id == account_id)
-            result = await self.session.scalars(stmt)
-            model = result.one_or_none()
+        stmt = select(CourierProfileModel).where(CourierProfileModel.account_id == account_id)
+        result = await self.session.scalars(stmt)
+        model = result.one_or_none()
 
-            if not model:
-                return None
+        if not model:
+            return None
 
-            return self._to_entity(model=model)
+        return self._to_entity(model=model)
 
     async def add_courier(self, profile: CourierProfile) -> None:
         model = CourierProfileModel(
             id=profile.id,
-            account_id = profile.account_id,
+            account_id=profile.account_id,
             full_name=profile.full_name,
             inn=profile.inn,
             is_verified=profile.is_verified,
             verified_at=profile.verified_at,
-            status=profile.status
+            status=profile.status,
         )
         self.session.add(model)
         await self.session.flush()
@@ -66,9 +66,8 @@ class SQLAlchemyCourierProfileRepository:
             model.inn = profile.inn
             model.status = profile.status
 
-
-    async def delete_courier(self,id: uuid.UUID) -> None:
-        stmt = select(CourierProfileModel).where(CourierProfileModel.id == id)
+    async def delete_courier(self, account_id: uuid.UUID) -> None:
+        stmt = select(CourierProfileModel).where(CourierProfileModel.account_id == account_id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
         if model:

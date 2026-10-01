@@ -8,7 +8,7 @@ class RedisCacheRepository:
     def __init__(self, redis_client: Redis):
         self.redis = redis_client
 
-    async def get(self, key:str) -> Any | None:
+    async def get(self, key: str) -> Any | None:
         data = await self.redis.get(key)
         if not data:
             return None
@@ -18,14 +18,9 @@ class RedisCacheRepository:
         except json.JSONDecodeError:
             return data
 
-    async def set(self, key: str, value:Any, ttl_second: int = 600) -> None:
+    async def set(self, key: str, value: Any, ttl_second: int = 600) -> None:
         json_data = json.dumps(value, default=str)
         await self.redis.set(key, json_data, ex=ttl_second)
 
     async def delete(self, key: str) -> None:
         await self.redis.delete(key)
-
-
-
-
-

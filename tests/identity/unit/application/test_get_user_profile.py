@@ -13,25 +13,26 @@ from tests.identity.fakes.fake_uow import FakeCacheRepository, FakeUnitOfWork
 async def uow():
     return FakeUnitOfWork()
 
+
 @pytest_asyncio.fixture
 async def cache():
     return FakeCacheRepository()
+
 
 @pytest.fixture
 def use_case(uow, cache):
     return GetUserProfileUseCase(uow=uow, cache=cache)
 
+
 @pytest.fixture
 def existing_profile():
-    return UserProfile(
-        id=uuid.uuid4(),
-        account_id=uuid.uuid4(),
-        name="Ivan",
-        address="Moscow"
-    )
+    return UserProfile(id=uuid.uuid4(), account_id=uuid.uuid4(), name="Ivan", address="Moscow")
+
 
 @pytest.mark.asyncio
-async def test_get_profile_cache_miss_fetches_from_db_and_caches(use_case, uow, cache, existing_profile):
+async def test_get_profile_cache_miss_fetches_from_db_and_caches(
+    use_case, uow, cache, existing_profile
+):
 
     await uow.user_profiles.add_user(existing_profile)
     cache_key = f"user_profile:{existing_profile.id}"

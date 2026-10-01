@@ -15,9 +15,11 @@ from tests.identity.fakes.fake_uow import FakeUnitOfWork
 async def uow():
     return FakeUnitOfWork()
 
+
 @pytest.fixture
 def use_case(uow):
     return DeleteAccountUseCase(uow=uow)
+
 
 @pytest.fixture
 def existing_account_and_profile():
@@ -28,7 +30,9 @@ def existing_account_and_profile():
 
 
 @pytest.mark.asyncio
-async def test_delete_account_success_cascades_to_profile(use_case, uow, existing_account_and_profile):
+async def test_delete_account_success_cascades_to_profile(
+    use_case, uow, existing_account_and_profile
+):
     account, profile = existing_account_and_profile
 
     await uow.accounts.add_account(account)

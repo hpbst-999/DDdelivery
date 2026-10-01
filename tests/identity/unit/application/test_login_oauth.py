@@ -14,7 +14,7 @@ class FakeTokenService:
     def generate_pair(self, account_id: str) -> dict:
         return {
             "access_token": f"oauth_access_for_{account_id}",
-            "refresh_token": f"oauth_refresh_for_{account_id}"
+            "refresh_token": f"oauth_refresh_for_{account_id}",
         }
 
 
@@ -22,9 +22,11 @@ class FakeTokenService:
 async def uow():
     return FakeUnitOfWork()
 
+
 @pytest.fixture
 def token_service():
     return FakeTokenService()
+
 
 @pytest.fixture
 def use_case(uow, token_service):

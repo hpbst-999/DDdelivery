@@ -10,14 +10,14 @@ class GetUserProfileUseCase:
         self.uow = uow
         self.cache = cache
 
-    async def execute(self, profile_id: uuid.UUID) -> UserProfile:
-        cache_key = f"user_profile:{profile_id}"
+    async def execute(self, account_id: uuid.UUID) -> UserProfile:
+        cache_key = f"user_profile:{account_id}"
         cached_data = await self.cache.get(cache_key)
         if cached_data:
             return UserProfile.from_dict(cached_data)
 
         async with self.uow:
-            profile = await self.uow.user_profiles.get_user_by_id(profile_id)
+            profile = await self.uow.user_profiles.get_user_by_id(account_id)
 
         if not profile:
             raise ProfileNotFoundError("User profile not found")

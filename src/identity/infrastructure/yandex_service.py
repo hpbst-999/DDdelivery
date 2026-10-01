@@ -21,19 +21,19 @@ class YandexOAuthService:
         self._client_secret = client_secret
 
     def get_authorization_url(self) -> str:
-        callback_uri = settings.CALLBACK_URI+"/yandex/callback"
+        callback_uri = settings.CALLBACK_URI + "/yandex/callback"
 
         params = {
             "response_type": "code",
             "client_id": self._client_id,
             "redirect_uri": callback_uri,
             "state": secrets.token_urlsafe(16),
-            "force_confirm": "yes"
+            "force_confirm": "yes",
         }
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
 
     async def get_user_info(self, code: str) -> OAuthUser:
-        callback_uri = settings.CALLBACK_URI+"/yandex/callback"
+        callback_uri = settings.CALLBACK_URI + "/yandex/callback"
         async with httpx.AsyncClient(timeout=10.0) as client:
             token_response = await client.post(
                 self.TOKEN_URL,
@@ -42,8 +42,8 @@ class YandexOAuthService:
                     "code": code,
                     "client_id": self._client_id,
                     "client_secret": self._client_secret,
-                    "redirect_uri": callback_uri
-                }
+                    "redirect_uri": callback_uri,
+                },
             )
             token_response.raise_for_status()
             access_token = token_response.json().get("access_token")

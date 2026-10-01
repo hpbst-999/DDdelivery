@@ -11,7 +11,7 @@ def profile_data():
         "id": uuid.uuid4(),
         "account_id": uuid.uuid4(),
         "name": "Иван Иванов",
-        "address": "г. Москва, ул. Пушкина, д. 1"
+        "address": "г. Москва, ул. Пушкина, д. 1",
     }
 
 
@@ -20,7 +20,7 @@ def test_user_profile_creation(profile_data):
         id=profile_data["id"],
         account_id=profile_data["account_id"],
         name=profile_data["name"],
-        address=profile_data["address"]
+        address=profile_data["address"],
     )
 
     assert profile.id == profile_data["id"]
@@ -60,7 +60,7 @@ def test_user_profile_from_dict():
         "id": profile_id_str,
         "account_id": account_id_str,
         "name": "Петр Петров",
-        "address": "г. Казань"
+        "address": "г. Казань",
     }
 
     profile = UserProfile.from_dict(data)

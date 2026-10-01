@@ -32,12 +32,14 @@ class FakeOTPRepository:
             self._storage[phone_str] = []
         self._storage[phone_str].append(otp)
 
+
 class FakeOutboxRepository:
     def __init__(self):
         self.messages: list[OutboxMessage] = []
 
     async def add(self, message: OutboxMessage) -> None:
         self.messages.append(message)
+
 
 class FakeAccountRepository:
     def __init__(self):
@@ -64,6 +66,7 @@ class FakeAccountRepository:
     async def delete_account(self, account_id: uuid.UUID) -> None:
         self.accounts.pop(account_id, None)
 
+
 class FakeUserProfileRepository:
     def __init__(self):
         self.profiles: dict[uuid.UUID, UserProfile] = {}
@@ -87,16 +90,19 @@ class FakeUserProfileRepository:
         if profile_id_to_delete:
             self.profiles.pop(profile_id_to_delete)
 
+
 class FakeRefreshTokenRepository:
     def __init__(self):
         self.tokens: dict[uuid.UUID, dict] = {}
 
-    async def save_refresh_token(self, id, account_id, refresh_token, expires_at, created_at) -> None:
+    async def save_refresh_token(
+        self, id, account_id, refresh_token, expires_at, created_at
+    ) -> None:
         self.tokens[id] = {
             "account_id": account_id,
             "refresh_token": refresh_token,
             "expires_at": expires_at,
-            "created_at": created_at
+            "created_at": created_at,
         }
 
     async def revoke_token(self, refresh_token: str) -> None:
@@ -112,12 +118,15 @@ class FakeRefreshTokenRepository:
     async def get_data_by_token(self, refresh_token: str):
         for tdata in self.tokens.values():
             if tdata["refresh_token"] == refresh_token:
+
                 class SessionDataDTO:
                     def __init__(self, data):
                         self.account_id = data["account_id"]
                         self.expires_at = data["expires_at"]
+
                 return SessionDataDTO(tdata)
         return None
+
 
 class FakeCacheRepository:
     def __init__(self):
@@ -131,6 +140,7 @@ class FakeCacheRepository:
 
     async def delete(self, key: str) -> None:
         self._cache.pop(key, None)
+
 
 class FakeUnitOfWork:
     def __init__(self):

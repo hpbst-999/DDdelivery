@@ -2,7 +2,6 @@ from typing import Any
 
 
 class OAuthServiceFactory:
-
     def __init__(self, services: dict[str, Any]):
         self._services = services
 

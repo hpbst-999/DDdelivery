@@ -18,9 +18,11 @@ from src.identity.domain.value_objects.phone_number import PhoneNumber
 def phone():
     return PhoneNumber("+79991234567")
 
+
 @pytest.fixture
 def mock_now():
     return datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
+
 
 @pytest.fixture
 def valid_otp(phone, mock_now):
@@ -29,7 +31,7 @@ def valid_otp(phone, mock_now):
         phone_number=phone,
         code="1234",
         created_at=mock_now,
-        expires_at=mock_now + timedelta(minutes=10)
+        expires_at=mock_now + timedelta(minutes=10),
     )
 
 
@@ -55,6 +57,7 @@ def test_can_resend_respects_cooldown(mock_datetime, valid_otp, mock_now):
     mock_datetime.now.return_value = mock_now + timedelta(seconds=65)
     assert valid_otp.can_resend(cooldown_seconds=60) is True
 
+
 @patch("src.identity.domain.entities.OTP.datetime")
 def test_is_expired(mock_datetime, valid_otp, mock_now):
     mock_datetime.now.return_value = mock_now + timedelta(minutes=5)
@@ -73,6 +76,7 @@ def test_verify_success(mock_datetime, valid_otp, mock_now):
     assert valid_otp.is_used is True
     assert valid_otp.attempts_count == 0
 
+
 @patch("src.identity.domain.entities.OTP.datetime")
 def test_verify_fails_with_invalid_code(mock_datetime, valid_otp, mock_now):
     mock_datetime.now.return_value = mock_now
@@ -84,12 +88,14 @@ def test_verify_fails_with_invalid_code(mock_datetime, valid_otp, mock_now):
     assert valid_otp.is_used is False
     assert "Attempts left" in str(exc_info.value)
 
+
 @patch("src.identity.domain.entities.OTP.datetime")
 def test_verify_fails_when_expired(mock_datetime, valid_otp, mock_now):
     mock_datetime.now.return_value = mock_now + timedelta(minutes=15)
 
     with pytest.raises(OTPExpiredError):
         valid_otp.verify("1234")
+
 
 @patch("src.identity.domain.entities.OTP.datetime")
 def test_verify_fails_when_max_attempts_exceeded(mock_datetime, valid_otp, mock_now):
@@ -98,6 +104,7 @@ def test_verify_fails_when_max_attempts_exceeded(mock_datetime, valid_otp, mock_
 
     with pytest.raises(OTPMaxAttemptsExceededError):
         valid_otp.verify("1234")
+
 
 @patch("src.identity.domain.entities.OTP.datetime")
 def test_verify_fails_if_already_used(mock_datetime, valid_otp, mock_now):

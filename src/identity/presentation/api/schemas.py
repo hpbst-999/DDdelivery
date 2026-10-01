@@ -4,7 +4,11 @@ from pydantic import BaseModel, Field
 
 
 class RequestOTP(BaseModel):
-    phone: str = Field(..., description="Phone number", json_schema_extra={"example": "8 (999) 123-45-67"})
+    phone: str = Field(
+        ..., description="Phone number", json_schema_extra={"example": "8 (999) 123-45-67"}
+    )
+
+
 class ResponseOTP(BaseModel):
     session_id: str
 
@@ -12,6 +16,8 @@ class ResponseOTP(BaseModel):
 class VerifyOTPRequest(BaseModel):
     session_id: str = Field(..., description="ID session")
     code: str = Field(..., min_length=4, max_length=4, description="SMS code")
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -20,6 +26,7 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
 
 class LogoutRequest(BaseModel):
     refresh_token: str

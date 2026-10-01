@@ -11,7 +11,6 @@ from src.identity.domain.exceptions import (
 
 
 class VerifyOTPAndCreateAccountUseCase:
-
     def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
         self.uow = uow
         self.token_service = token_service
@@ -39,10 +38,7 @@ class VerifyOTPAndCreateAccountUseCase:
 
             else:
                 account_id = uuid.uuid4()
-                account = Account(
-                    id=account_id,
-                    phone_number=phone_number
-                )
+                account = Account(id=account_id, phone_number=phone_number)
                 user_profile_id = uuid.uuid4()
                 user_profile = UserProfile(id=user_profile_id, account_id=account.id)
                 await self.uow.accounts.add_account(account)
@@ -54,12 +50,12 @@ class VerifyOTPAndCreateAccountUseCase:
             expires_at = datetime.now(UTC) + timedelta(days=30)
 
             await self.uow.refresh_tokens.save_refresh_token(
-                    id=new_id,
-                    account_id=account_id,
-                    refresh_token=tokens["refresh_token"],
-                    expires_at=expires_at,
-                    created_at = datetime.now(UTC)
-                )
+                id=new_id,
+                account_id=account_id,
+                refresh_token=tokens["refresh_token"],
+                expires_at=expires_at,
+                created_at=datetime.now(UTC),
+            )
             await self.uow.commit()
 
         return tokens

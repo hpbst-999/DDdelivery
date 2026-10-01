@@ -20,9 +20,7 @@ def test_account_creation_with_value_objects():
 def test_account_to_dict_serialization():
     acc_id = uuid.uuid4()
     account = Account(
-        id=acc_id,
-        phone_number=PhoneNumber("+79991234567"),
-        email=Email("test@example.com")
+        id=acc_id, phone_number=PhoneNumber("+79991234567"), email=Email("test@example.com")
     )
 
     data = account.to_dict()
@@ -33,11 +31,7 @@ def test_account_to_dict_serialization():
 
 def test_account_from_dict_deserialization():
     acc_id = str(uuid.uuid4())
-    data = {
-        "id": acc_id,
-        "phone_number": "+79991234567",
-        "email": "test@example.com"
-    }
+    data = {"id": acc_id, "phone_number": "+79991234567", "email": "test@example.com"}
 
     account = Account.from_dict(data)
 
