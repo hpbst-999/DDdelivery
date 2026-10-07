@@ -4,6 +4,7 @@ import pytest
 import pytest_asyncio
 
 from src.identity.application.dtos.oauth_user import OAuthUser
+from src.identity.application.dtos.token_pair import TokenPair
 from src.identity.application.use_cases.login_oauth import LoginWithOAuthUseCase
 from src.identity.domain.entities.account import Account
 from src.identity.domain.value_objects.email import Email
@@ -11,11 +12,11 @@ from tests.identity.fakes.fake_uow import FakeUnitOfWork
 
 
 class FakeTokenService:
-    def generate_pair(self, account_id: str) -> dict:
-        return {
-            "access_token": f"oauth_access_for_{account_id}",
-            "refresh_token": f"oauth_refresh_for_{account_id}",
-        }
+    def generate_pair(self, account_id: uuid.UUID) -> TokenPair:
+        return TokenPair(
+            access_token=f"oauth_access_for_{account_id}",
+            refresh_token=f"oauth_refresh_for_{account_id}",
+        )
 
 
 @pytest_asyncio.fixture
@@ -40,8 +41,8 @@ async def test_oauth_login_new_user_creates_account_and_profile(use_case, uow):
 
     tokens = await use_case.execute(user_info=oauth_data)
 
-    assert "access_token" in tokens
-    assert "refresh_token" in tokens
+    assert tokens.access_token
+    assert tokens.refresh_token
 
     assert len(uow.accounts.accounts) == 1
     assert len(uow.user_profiles.profiles) == 1
@@ -66,7 +67,7 @@ async def test_oauth_login_existing_user_skips_creation(use_case, uow):
 
     tokens = await use_case.execute(user_info=oauth_data)
 
-    assert "access_token" in tokens
+    assert tokens.access_token
     assert len(uow.accounts.accounts) == 1
     assert len(uow.user_profiles.profiles) == 0
     assert uow.committed is True

@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.OTP import OTP
+from src.identity.domain.entities.refresh_token import RefreshToken
 from src.identity.domain.entities.user_profile import UserProfile
 from src.identity.domain.value_objects.email import Email
 from src.identity.domain.value_objects.phone_number import PhoneNumber
@@ -171,7 +171,7 @@ class SQLAlchemyOTPRepository:
         self.session.add(model)
         await self.session.flush()
 
-    async def get_otp_by_session(self, session_id: str) -> OTP | None:
+    async def get_otp_by_session(self, session_id: uuid.UUID) -> OTP | None:
         stmt = select(OTPModel).where(OTPModel.session_id == session_id)
         result = await self.session.scalars(stmt)
         model = result.one_or_none()
@@ -204,37 +204,33 @@ class SQLAlchemyRefreshTokenRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def save_refresh_token(
-        self,
-        id: uuid.UUID,
-        account_id: uuid.UUID,
-        refresh_token: str,
-        expires_at: datetime,
-        created_at: datetime,
-    ) -> None:
-        model = RefreshTokenModel(
-            id=id,
-            account_id=account_id,
-            refresh_token=refresh_token,
-            expires_at=expires_at,
-            created_at=created_at,
-            is_revoked=False,
+    def _to_entity(self, model: RefreshTokenModel) -> RefreshToken:
+        return RefreshToken(
+            id=model.id,
+            account_id=model.account_id,
+            refresh_token=model.refresh_token,
+            expires_at=model.expires_at,
+            is_revoked=model.is_revoked,
+            created_at=model.created_at,
         )
-        self.session.add(model)
+
+    async def save_refresh_token(self, token: RefreshToken) -> None:
+        model = RefreshTokenModel(
+            id=token.id,
+            account_id=token.account_id,
+            refresh_token=token.refresh_token,
+            expires_at=token.expires_at,
+            is_revoked=token.is_revoked,
+            created_at=token.created_at,
+        )
+        await self.session.merge(model)
         await self.session.flush()
 
-    async def get_data_by_token(self, refresh_token: str) -> RefreshTokenModel | None:
+    async def get_refresh_token(self, refresh_token: str) -> RefreshToken | None:
         stmt = select(RefreshTokenModel).where(
             RefreshTokenModel.refresh_token == refresh_token,
             RefreshTokenModel.is_revoked.is_(False),
         )
         result = await self.session.scalars(stmt)
         model = result.first()
-        return model
-
-    async def revoke_token(self, refresh_token: str) -> None:
-        stmt = select(RefreshTokenModel).where(RefreshTokenModel.refresh_token == refresh_token)
-        result = await self.session.scalars(stmt)
-        model = result.first()
-        if model:
-            model.is_revoked = True
+        return self._to_entity(model) if model else None

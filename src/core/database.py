@@ -13,26 +13,16 @@ from src.core.config import settings
 class Base(DeclarativeBase):
     pass
 
-engine:AsyncEngine = create_async_engine(
-    url=settings.database_url,
-    echo=True,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+
+engine: AsyncEngine = create_async_engine(
+    url=settings.database_url, echo=True, pool_pre_ping=True, pool_size=5, max_overflow=10
 )
 
-SessionFactory:AsyncSession = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False
+SessionFactory: async_sessionmaker[AsyncSession] = async_sessionmaker(
+    bind=engine, class_=AsyncSession, autocommit=False, autoflush=False, expire_on_commit=False
 )
 
 
 redis_client = Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    decode_responses=True
+    host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB, decode_responses=True
 )

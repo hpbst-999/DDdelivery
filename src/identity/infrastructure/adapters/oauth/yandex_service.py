@@ -6,41 +6,41 @@ from src.core.config import settings
 from src.identity.application.dtos.oauth_user import OAuthUser
 
 
-class GoogleOAuthService:
-    AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-    TOKEN_URL = "https://oauth2.googleapis.com/token"
-    USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+class YandexOAuthService:
+    AUTH_URL = "https://oauth.yandex.ru/authorize"
+    TOKEN_URL = "https://oauth.yandex.ru/token"
+    USERINFO_URL = "https://login.yandex.ru/info"
 
     def __init__(
         self,
-        client_id: str = settings.GOOGLE_CLIENT_ID,
-        client_secret: str = settings.GOOGLE_CLIENT_SECRET,
+        client_id: str,
+        client_secret: str,
     ):
         self._client_id = client_id
         self._client_secret = client_secret
 
     def get_authorization_url(self, state) -> str:
-        callback_uri = settings.CALLBACK_URI + "/google/callback"
+        callback_uri = settings.CALLBACK_URI + "/yandex/callback"
+
         params = {
+            "response_type": "code",
             "client_id": self._client_id,
             "redirect_uri": callback_uri,
-            "response_type": "code",
-            "scope": "openid email profile",
             "state": state,
-            "prompt": "select_account",
+            "force_confirm": "yes",
         }
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
 
-    async def get_user_info(self, code) -> OAuthUser:
-        callback_uri = settings.CALLBACK_URI + "/google/callback"
-        async with httpx.AsyncClient(timeout=10) as client:
+    async def get_user_info(self, code: str) -> OAuthUser:
+        callback_uri = settings.CALLBACK_URI + "/yandex/callback"
+        async with httpx.AsyncClient(timeout=10.0) as client:
             token_response = await client.post(
                 self.TOKEN_URL,
                 data={
+                    "grant_type": "authorization_code",
+                    "code": code,
                     "client_id": self._client_id,
                     "client_secret": self._client_secret,
-                    "code": code,
-                    "grant_type": "authorization_code",
                     "redirect_uri": callback_uri,
                 },
             )
@@ -48,13 +48,21 @@ class GoogleOAuthService:
             access_token = token_response.json().get("access_token")
 
             user_response = await client.get(
-                self.USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"}
+                self.USERINFO_URL,
+                headers={"Authorization": f"OAuth {access_token}"},
+                params={"format": "json"},
             )
             user_response.raise_for_status()
             user_data = user_response.json()
 
-            email = user_data.get("email")
+            email = user_data.get("default_email")
             if not email:
                 raise ValueError("Email has not been provided")
 
-            return OAuthUser(email=email, name=user_data.get("name"))
+            name = (
+                user_data.get("real_name")
+                or user_data.get("display_name")
+                or user_data.get("first_name")
+            )
+
+            return OAuthUser(email=email, name=name)

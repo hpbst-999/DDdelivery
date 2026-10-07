@@ -11,7 +11,7 @@ class RequestOTPUseCase:
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow
 
-    async def execute(self, raw_phone_number: str) -> str:
+    async def execute(self, raw_phone_number: str) -> uuid.UUID:
         phone_number = PhoneNumber(raw_phone_number)
 
         async with self.uow:
@@ -19,7 +19,7 @@ class RequestOTPUseCase:
 
             if latest_otp:
                 if not latest_otp.can_resend():
-                    raise OTPRateLimitError("Too many OTP requests.")
+                    raise OTPRateLimitError("Too many OTP requests")
 
                 if not latest_otp.is_used:
                     latest_otp.is_used = True

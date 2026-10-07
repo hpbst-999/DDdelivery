@@ -1,46 +1,58 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from src.identity.application.interfaces import ITokenService, IUnitOfWork, TokenPair
-from src.identity.domain.exceptions import DomainException, SessionNotFoundError
+from src.identity.application.interfaces import (
+    ITokenGenerator,
+    ITokenValidator,
+    IUnitOfWork,
+    TokenPair,
+)
+from src.identity.domain.entities.refresh_token import RefreshToken
+from src.identity.domain.exceptions import (
+    InvalidTokenError,
+    SessionNotFoundError,
+    TokenExpiredError,
+)
 
 
 class RefreshSessionUseCase:
-    def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
+    def __init__(
+        self, uow: IUnitOfWork, token_generator: ITokenGenerator, token_validator: ITokenValidator
+    ):
         self.uow = uow
-        self.token_service = token_service
+        self.token_generator = token_generator
+        self.token_validator = token_validator
 
     async def execute(self, raw_refresh_token: str) -> TokenPair:
         try:
-            self.token_service.validate_refresh_token(raw_refresh_token)
-        except ValueError as e:
-            raise DomainException(str(e))
+            self.token_validator.validate_refresh_token(raw_refresh_token)
+        except ValueError:
+            raise InvalidTokenError
 
         async with self.uow:
-            session_data = await self.uow.refresh_tokens.get_data_by_token(raw_refresh_token)
-            if not session_data:
-                raise SessionNotFoundError("Session not found.")
+            token = await self.uow.refresh_tokens.get_refresh_token(raw_refresh_token)
+            if not token:
+                raise SessionNotFoundError("Session not found")
 
-            now = datetime.now(UTC)
-            if session_data.expires_at <= now:
-                await self.uow.refresh_tokens.revoke_token(raw_refresh_token)
+            if not token.is_valid:
+                token.revoke()
+                await self.uow.refresh_tokens.save_refresh_token(token)
                 await self.uow.commit()
-                raise DomainException("Refresh token has expired.")
+                raise TokenExpiredError("Refresh token has expired")
 
-            await self.uow.refresh_tokens.revoke_token(raw_refresh_token)
+            token.revoke()
+            await self.uow.refresh_tokens.save_refresh_token(token)
 
-            account_id = session_data.account_id
-            new_tokens = self.token_service.generate_pair(account_id=account_id)
-            token_id = uuid.uuid4()
-            expires_at = datetime.now(UTC) + timedelta(days=30)
-
-            await self.uow.refresh_tokens.save_refresh_token(
-                id=token_id,
-                account_id=account_id,
-                refresh_token=new_tokens["refresh_token"],
-                expires_at=expires_at,
+            token_pair = self.token_generator.generate_pair(account_id=token.account_id)
+            now = datetime.now(UTC)
+            new_token = RefreshToken(
+                id=uuid.uuid4(),
+                account_id=token.account_id,
+                refresh_token=token_pair.refresh_token,
+                expires_at=now + timedelta(days=30),
                 created_at=now,
             )
+            await self.uow.refresh_tokens.save_refresh_token(new_token)
 
             await self.uow.commit()
-        return new_tokens
+        return token_pair

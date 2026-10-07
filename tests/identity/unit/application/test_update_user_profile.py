@@ -34,13 +34,13 @@ def existing_profile():
 @pytest.mark.asyncio
 async def test_update_profile_success_and_invalidates_cache(use_case, uow, cache, existing_profile):
     await uow.user_profiles.add_user(existing_profile)
-    cache_key = f"user_profile:{existing_profile.id}"
+    cache_key = f"user_profile:{existing_profile.account_id}"
     await cache.set(cache_key, existing_profile.to_dict())
 
     assert await cache.get(cache_key) is not None
 
     updated_profile = await use_case.execute(
-        id=existing_profile.id, name="New Name", address="New Address"
+        account_id=existing_profile.account_id, name="New Name", address="New Address"
     )
 
     assert updated_profile.name == "New Name"
@@ -58,7 +58,9 @@ async def test_update_profile_success_and_invalidates_cache(use_case, uow, cache
 async def test_update_profile_partial_update(use_case, uow, cache, existing_profile):
     await uow.user_profiles.add_user(existing_profile)
 
-    updated_profile = await use_case.execute(id=existing_profile.id, name="Only Name Changed")
+    updated_profile = await use_case.execute(
+        account_id=existing_profile.account_id, name="Only Name Changed"
+    )
 
     assert updated_profile.name == "Only Name Changed"
     assert updated_profile.address == "Old Address"
@@ -71,6 +73,6 @@ async def test_update_profile_not_found(use_case, uow):
     fake_id = uuid.uuid4()
 
     with pytest.raises(ProfileNotFoundError, match="User profile not found"):
-        await use_case.execute(id=fake_id, name="Ghost", address="Nowhere")
+        await use_case.execute(account_id=fake_id, name="Ghost", address="Nowhere")
 
     assert uow.committed is False

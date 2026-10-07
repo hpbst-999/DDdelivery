@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.outbox.infrastructure.postgres_repository import SQLAlchemyOutboxRepository
 
 
-class SQLAlchemyUnitOfWork:
+class UnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.outbox = SQLAlchemyOutboxRepository(self.session)

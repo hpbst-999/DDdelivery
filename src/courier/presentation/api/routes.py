@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from uuid import UUID
 
-from src.courier.domain.entities.courier_profile import CourierProfile
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from src.courier.domain.exceptions import ProfileAlreadyExistsError, ProfileNotFoundError
 from src.courier.domain.value_objects.enums import CourierStatus
 from src.courier.presentation.api.schemas import (
     CourierProfileResponse,
@@ -13,72 +15,66 @@ from src.courier.presentation.dependencies import (
     get_delete_courier_use_case,
     get_update_courier_profile_use_case,
 )
-from src.identity.presentation.security import get_current_account
+from src.identity.presentation.security import get_current_account_id
 
 router = APIRouter(tags=["Courier"])
 
 
-@router.get("/courier/me", response_model=CourierProfileResponse)
+@router.get("/me", response_model=CourierProfileResponse)
 async def get_courier_profile(
-    account=Depends(get_current_account), use_case=Depends(get_courier_profile_use_case)
-) -> CourierProfile:
+    account_id: UUID = Depends(get_current_account_id),
+    use_case=Depends(get_courier_profile_use_case),
+) -> CourierProfileResponse:
     try:
-        profile = await use_case.execute(account_id=account.id)
+        profile = await use_case.execute(account_id=account_id)
         return profile
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
-@router.post("/courier/me", status_code=204)
+@router.post("/me", status_code=status.HTTP_201_CREATED)
 async def create_courier_profile(
-    account=Depends(get_current_account), use_case=Depends(get_create_courier_use_case)
+    account_id: UUID = Depends(get_current_account_id),
+    use_case=Depends(get_create_courier_use_case),
 ) -> None:
     try:
-        await use_case.execute(account_id=account.id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        await use_case.execute(account_id=account_id)
+    except ProfileAlreadyExistsError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
 
-@router.patch("/courier/me", response_model=CourierProfileResponse)
+@router.patch("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def update_courier_profile(
     data: UpdateCourierProfileRequest,
-    account=Depends(get_current_account),
+    account_id: UUID = Depends(get_current_account_id),
     use_case=Depends(get_update_courier_profile_use_case),
 ) -> None:
     try:
-        profile = await use_case.execute(account_id=account.id, full_name=data.full_name)
-        return profile
+        await use_case.execute(account_id=account_id, full_name=data.full_name)
+    except ProfileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.delete("/courier/me", status_code=204)
+@router.delete("/me", status_code=204)
 async def delete_courier_account(
-    account=Depends(get_current_account), use_case=Depends(get_delete_courier_use_case)
+    account_id: UUID = Depends(get_current_account_id),
+    use_case=Depends(get_delete_courier_use_case),
 ) -> None:
     try:
-        await use_case.execute(account_id=account.id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        await use_case.execute(account_id=account_id)
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
-@router.patch("/courier/me/status")
+@router.patch("/me/status", status_code=status.HTTP_204_NO_CONTENT)
 async def change_courier_status(
     target_status: CourierStatus = Query(..., description="Courier status"),
-    account=Depends(get_current_account),
+    account_id: UUID = Depends(get_current_account_id),
     use_case=Depends(get_change_courier_status_use_case),
-) -> dict[str, str]:
+) -> None:
     try:
-        await use_case.execute(account_id=account.id, target_status=target_status)
-        return {"message": f"Status: {target_status.value}"}
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=5000, detail="Server error")
+        await use_case.execute(account_id=account_id, target_status=target_status)
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

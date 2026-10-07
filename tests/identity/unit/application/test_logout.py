@@ -5,6 +5,7 @@ import pytest
 import pytest_asyncio
 
 from src.identity.application.use_cases.logout import LogoutUseCase
+from src.identity.domain.entities.refresh_token import RefreshToken
 from tests.identity.fakes.fake_uow import FakeUnitOfWork
 
 
@@ -24,11 +25,13 @@ async def test_logout_success_revokes_token(use_case, uow):
     refresh_token_str = "some_valid_refresh_token_string"
 
     await uow.refresh_tokens.save_refresh_token(
-        id=token_id,
-        account_id=uuid.uuid4(),
-        refresh_token=refresh_token_str,
-        expires_at=datetime.now(UTC) + timedelta(days=30),
-        created_at=datetime.now(UTC),
+        RefreshToken(
+            id=token_id,
+            account_id=uuid.uuid4(),
+            refresh_token=refresh_token_str,
+            expires_at=datetime.now(UTC) + timedelta(days=30),
+            created_at=datetime.now(UTC),
+        )
     )
 
     assert len(uow.refresh_tokens.tokens) == 1
@@ -37,7 +40,8 @@ async def test_logout_success_revokes_token(use_case, uow):
 
     assert uow.committed is True
 
-    assert len(uow.refresh_tokens.tokens) == 0
+    assert uow.refresh_tokens.tokens[token_id].is_revoked is True
+    assert await uow.refresh_tokens.get_refresh_token(refresh_token_str) is None
 
 
 @pytest.mark.asyncio

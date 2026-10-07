@@ -1,6 +1,7 @@
-from typing import TypedDict
+from dataclasses import dataclass
 
 
-class TokenPair(TypedDict):
+@dataclass(frozen=True)
+class TokenPair:
     access_token: str
     refresh_token: str

@@ -1,3 +1,5 @@
+from typing import Self
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.identity.infrastructure.postgres_repositories import (
@@ -9,11 +11,11 @@ from src.identity.infrastructure.postgres_repositories import (
 from src.outbox.infrastructure.postgres_repository import SQLAlchemyOutboxRepository
 
 
-class SQLAlchemyUnitOfWork:
+class UnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def __aenter__(self) -> "SQLAlchemyUnitOfWork":
+    async def __aenter__(self) -> Self:
         self.otp = SQLAlchemyOTPRepository(self.session)
         self.accounts = SQLAlchemyAccountRepository(self.session)
         self.user_profiles = SQLAlchemyUserProfileRepository(self.session)

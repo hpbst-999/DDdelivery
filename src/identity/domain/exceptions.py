@@ -6,10 +6,6 @@ class OTPVerificationFailedError(DomainException):
     pass
 
 
-class InvalidCoordinatesError(DomainException):
-    pass
-
-
 class AccountNotFoundError(DomainException):
     pass
 
@@ -47,4 +43,12 @@ class InvalidPhoneNumberError(DomainException):
 
 
 class OTPSessionNotFoundError(DomainException):
+    pass
+
+
+class InvalidTokenError(DomainException):
+    pass
+
+
+class TokenExpiredError(DomainException):
     pass

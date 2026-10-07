@@ -17,7 +17,7 @@ class GetUserProfileUseCase:
             return UserProfile.from_dict(cached_data)
 
         async with self.uow:
-            profile = await self.uow.user_profiles.get_user_by_id(account_id)
+            profile = await self.uow.user_profiles.get_user_by_account_id(account_id)
 
         if not profile:
             raise ProfileNotFoundError("User profile not found")

@@ -14,7 +14,8 @@ class DeleteAccountUseCase:
             if not account:
                 raise AccountNotFoundError("Account not found")
             profile = await self.uow.user_profiles.get_user_by_account_id(account_id)
-            await self.uow.user_profiles.delete_user(profile.id)
+            if profile:
+                await self.uow.user_profiles.delete_user(profile.id)
             await self.uow.accounts.delete_account(account_id)
             # как тут реализовать каскадное удаление профилей
             await self.uow.commit()

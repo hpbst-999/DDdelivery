@@ -3,6 +3,7 @@ from typing import Any
 
 EventHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
+
 class EventDispatcher:
     def __init__(self) -> None:
         self._handlers: dict[str, EventHandler] = {}

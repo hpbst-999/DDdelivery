@@ -1,35 +1,40 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.identity.application.interfaces import (
-    ICacheRepository,
-    IUnitOfWork,
-)
+from src.identity.application.interfaces import ICacheRepository, ITokenValidator, IUnitOfWork
 from src.identity.domain.entities.account import Account
-from src.identity.infrastructure.security_jwt import JwtTokenService
-from src.identity.presentation.dependencies import get_cache_repository, get_token_service, get_uow
+from src.identity.presentation.dependencies import (
+    get_cache_repository,
+    get_token_validator,
+    get_uow,
+)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=True)
+
+
+async def get_current_account_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    token_validator: ITokenValidator = Depends(get_token_validator),
+) -> UUID:
+
+    token = credentials.credentials
+    try:
+        payload = token_validator.validate_access_token(token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    return payload["account_id"]
 
 
 async def get_current_account(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    token_service: JwtTokenService = Depends(get_token_service),
+    account_id: UUID = Depends(get_current_account_id),
     uow: IUnitOfWork = Depends(get_uow),
     cache: ICacheRepository = Depends(get_cache_repository),
 ) -> Account:
-    token = credentials.credentials
-    try:
-        payload = token_service.validate_access_token(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    account_id = UUID(payload.get("sub"))
-    if not account_id:
-        raise HTTPException(status_code=401, detail="No ID found in token")
-
     cache_key = f"account:{account_id}"
     cache_account = await cache.get(key=cache_key)
     if cache_account:
@@ -38,7 +43,10 @@ async def get_current_account(
     async with uow:
         account = await uow.accounts.get_account_by_id(account_id)
         if not account:
-            raise HTTPException(status_code=401, detail="Account not found")
-        await cache.set(cache_key, account.to_dict(), ttl_second=600)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account not found",
+            )
 
+        await cache.set(cache_key, account.to_dict(), ttl_second=600)
         return account

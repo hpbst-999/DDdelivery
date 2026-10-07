@@ -41,7 +41,7 @@ class CourierProfile:
     def go_offline(self) -> None:
         if self.status == CourierStatus.BUSY:
             raise InvalidCourierStatusTransitionError(
-                "You cannot complete the shift while you have an active order."
+                "You cannot complete the shift while you have an active order"
             )
         self.status = CourierStatus.OFFLINE
 
@@ -53,7 +53,7 @@ class CourierProfile:
     def complete_order(self) -> None:
         if self.status != CourierStatus.BUSY:
             raise InvalidCourierStatusTransitionError(
-                "Cannot complete order when courier is not busy."
+                "Cannot complete order when courier is not busy"
             )
         self.status = CourierStatus.ONLINE
 
@@ -62,7 +62,7 @@ class CourierProfile:
             return
 
         if target_status == CourierStatus.BUSY:
-            raise InvalidCourierStatusTransitionError("The BUSY status is set by the system.")
+            raise InvalidCourierStatusTransitionError("The BUSY status is set by the system")
 
         if target_status == CourierStatus.ONLINE:
             self.go_online()

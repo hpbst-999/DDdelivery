@@ -12,7 +12,7 @@ class GetCourierProfileUseCase:
     async def execute(self, account_id: uuid.UUID) -> CourierProfile:
         async with self.uow:
             profile = await self.uow.courier_profiles.get_courier_by_account_id(account_id)
-        if not profile:
-            raise ProfileNotFoundError("Courier profile not found")
+            if not profile:
+                raise ProfileNotFoundError("Courier profile not found")
 
         return profile

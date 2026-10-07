@@ -20,3 +20,7 @@ class CourierNotVerifiedError(DomainException):
 
 class InvalidCourierStatusTransitionError(DomainException):
     pass
+
+
+class ProfileAlreadyExistsError(DomainException):
+    pass

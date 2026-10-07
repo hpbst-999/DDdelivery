@@ -2,6 +2,7 @@ import uuid
 
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.OTP import OTP
+from src.identity.domain.entities.refresh_token import RefreshToken
 from src.identity.domain.entities.user_profile import UserProfile
 from src.outbox.domain.outbox_message import OutboxMessage
 
@@ -77,54 +78,30 @@ class FakeUserProfileRepository:
     async def get_user_by_id(self, profile_id: uuid.UUID) -> UserProfile | None:
         return self.profiles.get(profile_id)
 
+    async def get_user_by_account_id(self, account_id: uuid.UUID) -> UserProfile | None:
+        for profile in self.profiles.values():
+            if profile.account_id == account_id:
+                return profile
+        return None
+
     async def update_user(self, profile: UserProfile) -> None:
         self.profiles[profile.id] = profile
 
-    async def delete_user(self, account_id: uuid.UUID) -> None:
-        profile_id_to_delete = None
-        for pid, profile in self.profiles.items():
-            if profile.account_id == account_id:
-                profile_id_to_delete = pid
-                break
-
-        if profile_id_to_delete:
-            self.profiles.pop(profile_id_to_delete)
+    async def delete_user(self, profile_id: uuid.UUID) -> None:
+        self.profiles.pop(profile_id, None)
 
 
 class FakeRefreshTokenRepository:
     def __init__(self):
-        self.tokens: dict[uuid.UUID, dict] = {}
+        self.tokens: dict[uuid.UUID, RefreshToken] = {}
 
-    async def save_refresh_token(
-        self, id, account_id, refresh_token, expires_at, created_at
-    ) -> None:
-        self.tokens[id] = {
-            "account_id": account_id,
-            "refresh_token": refresh_token,
-            "expires_at": expires_at,
-            "created_at": created_at,
-        }
+    async def save_refresh_token(self, token: RefreshToken) -> None:
+        self.tokens[token.id] = token
 
-    async def revoke_token(self, refresh_token: str) -> None:
-        token_id_to_delete = None
-        for tid, tdata in self.tokens.items():
-            if tdata["refresh_token"] == refresh_token:
-                token_id_to_delete = tid
-                break
-
-        if token_id_to_delete:
-            self.tokens.pop(token_id_to_delete)
-
-    async def get_data_by_token(self, refresh_token: str):
-        for tdata in self.tokens.values():
-            if tdata["refresh_token"] == refresh_token:
-
-                class SessionDataDTO:
-                    def __init__(self, data):
-                        self.account_id = data["account_id"]
-                        self.expires_at = data["expires_at"]
-
-                return SessionDataDTO(tdata)
+    async def get_refresh_token(self, refresh_token: str) -> RefreshToken | None:
+        for token in self.tokens.values():
+            if token.refresh_token == refresh_token and not token.is_revoked:
+                return token
         return None
 
 

@@ -41,7 +41,7 @@ async def test_delete_account_success_cascades_to_profile(
     assert len(uow.accounts.accounts) == 1
     assert len(uow.user_profiles.profiles) == 1
 
-    await use_case.execute(id=account.id)
+    await use_case.execute(account_id=account.id)
 
     assert uow.committed is True
 
@@ -55,6 +55,6 @@ async def test_delete_account_not_found(use_case, uow):
     fake_id = uuid.uuid4()
 
     with pytest.raises(AccountNotFoundError, match="Account not found"):
-        await use_case.execute(id=fake_id)
+        await use_case.execute(account_id=fake_id)
 
     assert uow.committed is False

@@ -35,11 +35,11 @@ async def test_get_profile_cache_miss_fetches_from_db_and_caches(
 ):
 
     await uow.user_profiles.add_user(existing_profile)
-    cache_key = f"user_profile:{existing_profile.id}"
+    cache_key = f"user_profile:{existing_profile.account_id}"
 
     assert await cache.get(cache_key) is None
 
-    result = await use_case.execute(profile_id=existing_profile.id)
+    result = await use_case.execute(account_id=existing_profile.account_id)
 
     assert result.id == existing_profile.id
     assert result.name == "Ivan"
@@ -53,12 +53,12 @@ async def test_get_profile_cache_miss_fetches_from_db_and_caches(
 @pytest.mark.asyncio
 async def test_get_profile_cache_hit_returns_fast(use_case, uow, cache, existing_profile):
 
-    cache_key = f"user_profile:{existing_profile.id}"
+    cache_key = f"user_profile:{existing_profile.account_id}"
     await cache.set(cache_key, existing_profile.to_dict())
 
     assert len(uow.user_profiles.profiles) == 0
 
-    result = await use_case.execute(profile_id=existing_profile.id)
+    result = await use_case.execute(account_id=existing_profile.account_id)
 
     assert result.id == existing_profile.id
     assert result.name == "Ivan"
@@ -70,4 +70,4 @@ async def test_get_profile_not_found_raises_error(use_case):
     random_id = uuid.uuid4()
 
     with pytest.raises(ProfileNotFoundError, match="User profile not found"):
-        await use_case.execute(profile_id=random_id)
+        await use_case.execute(account_id=random_id)

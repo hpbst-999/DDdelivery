@@ -58,15 +58,18 @@ class OTP:
         interval = (datetime.now(UTC) - self.created_at).total_seconds()
         return interval >= cooldown_seconds
 
+    def invalidate(self):
+        self.is_used = True
+
     def verify(self, input_code: str):
         if self.is_used:
-            raise InvalidOTPCodeError("OTP code has already been used.")
+            raise InvalidOTPCodeError("OTP code has already been used")
 
         if self.is_expired():
-            raise OTPExpiredError("OTP code has expired.")
+            raise OTPExpiredError("OTP code has expired")
 
         if self.attempts_count >= self.max_attempts:
-            raise OTPMaxAttemptsExceededError("Maximum OTP attempts exceeded.")
+            raise OTPMaxAttemptsExceededError("Maximum OTP attempts exceeded")
 
         if self.code != input_code:
             self.attempts_count += 1
@@ -74,4 +77,4 @@ class OTP:
                 f"Invalid code. Attempts left: {self.max_attempts - self.attempts_count}"
             )
 
-        self.is_used = True
+        self.invalidate()

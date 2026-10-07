@@ -7,14 +7,14 @@ from src.courier.application.interfaces import ICourierProfileRepository
 from src.courier.infrastructure.postgres_repositories import SQLAlchemyCourierProfileRepository
 
 
-class SQLAlchemyUnitOfWork:
+class UnitOfWork:
     courier_profiles: ICourierProfileRepository
 
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
+        self.courier_profiles = SQLAlchemyCourierProfileRepository(self.session)
 
     async def __aenter__(self) -> Self:
-        self.courier_profiles = SQLAlchemyCourierProfileRepository(self.session)
         return self
 
     async def __aexit__(
@@ -25,8 +25,6 @@ class SQLAlchemyUnitOfWork:
     ) -> None:
         if exc_type:
             await self.rollback()
-        else:
-            await self.commit()
 
     async def commit(self) -> None:
         await self.session.commit()

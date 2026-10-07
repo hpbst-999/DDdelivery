@@ -1,47 +1,34 @@
-import uuid
-from datetime import UTC, datetime, timedelta
-
-from src.identity.application.dtos.oauth_user import OAuthUser
-from src.identity.application.interfaces import ITokenService, IUnitOfWork, TokenPair
-from src.identity.domain.entities.account import Account
-from src.identity.domain.entities.user_profile import UserProfile
+from src.identity.application.interfaces import (
+    ICacheRepository,
+    IOAuthServiceFactory,
+    ITokenGenerator,
+    IUnitOfWork,
+)
+from src.identity.domain.exceptions import DomainException
 from src.identity.domain.value_objects.email import Email
 
 
 class LoginWithOAuthUseCase:
-    def __init__(self, uow: IUnitOfWork, token_service: ITokenService):
+    def __init__(
+        self,
+        uow: IUnitOfWork,
+        token_generator: ITokenGenerator,
+        factory: IOAuthServiceFactory,
+        cache: ICacheRepository,
+    ):
         self.uow = uow
-        self.token_service = token_service
+        self.token_generator = token_generator
+        self.factory = factory
+        self.cache = cache
 
-    async def execute(self, user_info: OAuthUser) -> TokenPair:
-        email = Email(user_info.email)
-
-        async with self.uow:
-            account = await self.uow.accounts.get_account_by_email(email)
-            if account:
-                account_id = str(account.id)
-
-            else:
-                account_id = uuid.uuid4()
-                account = Account(id=account_id, email=email)
-                user_profile_id = uuid.uuid4()
-                user_profile = UserProfile(
-                    id=user_profile_id, account_id=account.id, name=user_info.name
-                )
-                await self.uow.accounts.add_account(account)
-                await self.uow.user_profiles.add_user(user_profile)
-                account_id = str(account.id)
-
-            tokens = self.token_service.generate_pair(account_id=account_id)
-            token_id = uuid.uuid4()
-            expires_at = datetime.now(UTC) + timedelta(days=30)
-
-            await self.uow.refresh_tokens.save_refresh_token(
-                id=token_id,
-                account_id=account_id,
-                refresh_token=tokens["refresh_token"],
-                expires_at=expires_at,
-                created_at=datetime.now(UTC),
-            )
-            await self.uow.commit()
-        return tokens
+    async def execute(self, state: str, provider: str, code: str) -> Email:
+        cache_key = f"state:{state}"
+        saved_provider = await self.cache.get(key=cache_key)
+        if not saved_provider:
+            raise DomainException("State is invalid or expired")
+        await self.cache.delete(key=cache_key)
+        if saved_provider != provider:
+            raise DomainException("State provider mismatch")
+        oauth_service = self.factory.get_service(provider)
+        user_info = await oauth_service.get_user_info(code=code)
+        return Email(user_info.email)

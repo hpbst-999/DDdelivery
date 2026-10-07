@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class RequestOTP(BaseModel):
@@ -10,11 +10,11 @@ class RequestOTP(BaseModel):
 
 
 class ResponseOTP(BaseModel):
-    session_id: str
+    session_id: uuid.UUID
 
 
 class VerifyOTPRequest(BaseModel):
-    session_id: str = Field(..., description="ID session")
+    session_id: uuid.UUID = Field(..., description="ID session")
     code: str = Field(..., min_length=4, max_length=4, description="SMS code")
 
 
@@ -41,3 +41,7 @@ class UserProfileResponse(BaseModel):
     id: uuid.UUID
     name: str | None = None
     address: str | None = None
+
+
+class OAuthUrlResponse(BaseModel):
+    url: HttpUrl = Field(..., description="url")

@@ -13,7 +13,7 @@ class ChangeCourierStatusUseCase:
         async with self.uow:
             profile = await self.uow.courier_profiles.get_courier_by_id(account_id)
             if not profile:
-                raise ProfileNotFoundError("Coureir profile not found.")
+                raise ProfileNotFoundError("Coureir profile not found")
 
             profile.change_status(target_status)
 
