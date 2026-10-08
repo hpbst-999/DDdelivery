@@ -44,4 +44,4 @@ class UserProfileResponse(BaseModel):
 
 
 class OAuthUrlResponse(BaseModel):
-    url: HttpUrl = Field(..., description="url")
+    url: str= Field(..., description="url")

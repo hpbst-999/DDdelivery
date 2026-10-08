@@ -3,7 +3,7 @@ import urllib.parse
 import httpx
 
 from src.core.config import settings
-from src.identity.application.dtos.oauth_user import OAuthUser
+from src.identity.infrastructure.dto.oauth_user import OAuthUserData
 
 
 class YandexOAuthService:
@@ -31,7 +31,7 @@ class YandexOAuthService:
         }
         return f"{self.AUTH_URL}?{urllib.parse.urlencode(params)}"
 
-    async def get_user_info(self, code: str) -> OAuthUser:
+    async def get_user_info(self, code: str) -> OAuthUserData:
         callback_uri = settings.CALLBACK_URI + "/yandex/callback"
         async with httpx.AsyncClient(timeout=10.0) as client:
             token_response = await client.post(
@@ -65,4 +65,4 @@ class YandexOAuthService:
                 or user_data.get("first_name")
             )
 
-            return OAuthUser(email=email, name=name)
+            return OAuthUserData(email=email, name=name)

@@ -1,10 +1,8 @@
-import secrets
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.identity.application.interfaces import TokenPair
 from src.identity.application.use_cases.create_account import CreateAccountUseCase
 from src.identity.application.use_cases.delete_account import DeleteAccountUseCase
+from src.identity.application.use_cases.get_oauth_url import GetOAuthUrlUseCase
 from src.identity.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.identity.application.use_cases.login_oauth import LoginWithOAuthUseCase
 from src.identity.application.use_cases.logout import LogoutUseCase
@@ -16,8 +14,12 @@ from src.identity.domain.entities.account import Account
 from src.identity.domain.exceptions import (
     AccountNotFoundError,
     DomainException,
+    InvalidCredentialsError,
+    InvalidOAuthStateError,
     InvalidOTPCodeError,
     InvalidTokenError,
+    OAuthProviderNotSupportedError,
+    OAuthStateMismatchError,
     OTPRateLimitError,
     OTPSessionNotFoundError,
     ProfileNotFoundError,
@@ -36,12 +38,11 @@ from src.identity.presentation.api.schemas import (
     VerifyOTPRequest,
 )
 from src.identity.presentation.dependencies import (
-    get_cache_repository,
     get_create_account_use_case,
     get_delete_account_use_case,
     get_login_user_use_case,
     get_logout_use_case,
-    get_oauth_service_factory,
+    get_oauth_url,
     get_refresh_session_use_case,
     get_request_otp_use_case,
     get_update_user_profile_use_case,
@@ -59,10 +60,9 @@ async def send_code(
 ) -> ResponseOTP:
     try:
         session_id = await use_case.execute(raw_phone_number=request.phone)
-        return session_id
-
     except OTPRateLimitError:
-        HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    return ResponseOTP.model_validate(session_id)
 
 
 @router.post("/otp/verify", response_model=TokenResponse)
@@ -76,12 +76,12 @@ async def verify_user_otp(
             session_id=request.session_id, input_code=request.code
         )
         tokens = await create_account_use_case.execute(phone_number)
-        return TokenPair(access_token=tokens.access_token, refresh_token=tokens.refresh_token)
 
     except OTPSessionNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except InvalidOTPCodeError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    return TokenResponse.model_validate(tokens)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -90,13 +90,12 @@ async def refresh_token(
 ) -> TokenResponse:
     try:
         tokens = await use_case.execute(raw_refresh_token=request.refresh_token)
-
-        return TokenPair(access_token=tokens.access_token, refresh_token=tokens.refresh_token)
+        
     except (InvalidTokenError, SessionNotFoundError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     except TokenExpiredError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-
+    return TokenResponse.model_validate(tokens)
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
@@ -115,10 +114,9 @@ async def get_user_profile(
 ) -> UserProfileResponse:
     try:
         profile = await use_case.execute(account_id=account.id)
-        return profile
     except ProfileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
+    return UserProfileResponse.model_validate(profile)
 
 @router.patch("/user/me", response_model=UserProfileResponse)
 async def update_user_profile(
@@ -130,10 +128,9 @@ async def update_user_profile(
         profile = await use_case.execute(
             account_id=account.id, name=data.name, address=data.address
         )
-        return profile
     except ProfileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
+    return UserProfileResponse.model_validate(profile)
 
 @router.delete("/user/me", status_code=204)
 async def delete_user_account(
@@ -148,32 +145,31 @@ async def delete_user_account(
 
 @router.get("/{provider}/url", response_model=OAuthUrlResponse)
 async def get_user_auth_url(
-    provider: str, factory=Depends(get_oauth_service_factory), cache=Depends(get_cache_repository)
+    provider: str, use_case: GetOAuthUrlUseCase = Depends(get_oauth_url)
 ) -> OAuthUrlResponse:
     try:
-        oauth_service = factory.get_service(provider)
-
-    except ValueError:
+        url = await use_case.execute(provider=provider)
+    except OAuthProviderNotSupportedError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    state = secrets.token_urlsafe(16)
-    cache_key = f"state:{state}"
-    await cache.set(key=cache_key, value=provider)
-    url = oauth_service.get_authorization_url(state)
-    return OAuthUrlResponse(url=url)
+
+    return OAuthUrlResponse.model_validate(url)
 
 
 @router.get("/{provider}/callback", response_model=TokenResponse)
 async def user_oauth_callback(
     provider: str,
     code: str = Query(..., description="Authorization code"),
-    state: str | None = Query(None),
+    state: str  = Query(...),
     login_use_case: LoginWithOAuthUseCase = Depends(get_login_user_use_case),
     create_account_use_case: CreateAccountUseCase = Depends(get_create_account_use_case),
 ) -> TokenResponse:
     try:
         email = await login_use_case.execute(state=state, provider=provider, code=code)
         tokens = await create_account_use_case.execute(email=email)
-    except ValueError:
-        raise HTTPException
+    except (InvalidOAuthStateError, OAuthStateMismatchError):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
-    return tokens
+    except InvalidCredentialsError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    return TokenResponse.model_validate(tokens)

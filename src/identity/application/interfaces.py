@@ -1,8 +1,7 @@
 import uuid
 from typing import Any, Protocol, Self
 
-from src.identity.application.dtos.oauth_user import OAuthUser
-from src.identity.application.dtos.token_pair import TokenPair
+
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.OTP import OTP
 from src.identity.domain.entities.refresh_token import RefreshToken
@@ -23,9 +22,16 @@ class IRefreshTokenRepository(Protocol):
     async def save_refresh_token(self, token: RefreshToken) -> None: ...
     async def get_refresh_token(self, refresh_token: str) -> RefreshToken | None: ...
 
+class ITokenData(Protocol):
+    access_token: str
+    refresh_token: str
+
+class IOAuthData(Protocol):
+    email: str
+    name: str
 
 class ITokenGenerator(Protocol):
-    def generate_pair(self, account_id: uuid.UUID) -> TokenPair: ...
+    def generate_pair(self, account_id: uuid.UUID) -> ITokenData: ...
 
 
 class ITokenValidator(Protocol):
@@ -65,7 +71,7 @@ class IUnitOfWork(Protocol):
 
 class IOAuthService(Protocol):
     def get_authorization_url(self, state: str) -> str: ...
-    async def get_user_info(self, code: str) -> OAuthUser: ...
+    async def get_user_info(self, code: str) -> IOAuthData: ...
 
 
 class ICacheRepository(Protocol):

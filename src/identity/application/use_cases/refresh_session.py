@@ -5,7 +5,7 @@ from src.identity.application.interfaces import (
     ITokenGenerator,
     ITokenValidator,
     IUnitOfWork,
-    TokenPair,
+    ITokenData
 )
 from src.identity.domain.entities.refresh_token import RefreshToken
 from src.identity.domain.exceptions import (
@@ -23,7 +23,7 @@ class RefreshSessionUseCase:
         self.token_generator = token_generator
         self.token_validator = token_validator
 
-    async def execute(self, raw_refresh_token: str) -> TokenPair:
+    async def execute(self, raw_refresh_token: str) -> ITokenData:
         try:
             self.token_validator.validate_refresh_token(raw_refresh_token)
         except ValueError:

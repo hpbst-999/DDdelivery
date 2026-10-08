@@ -52,3 +52,18 @@ class InvalidTokenError(DomainException):
 
 class TokenExpiredError(DomainException):
     pass
+
+
+class OAuthProviderNotSupportedError(DomainException):
+    pass
+
+
+class InvalidOAuthStateError(DomainException):
+    pass
+
+
+class OAuthStateMismatchError(DomainException):
+    pass
+
+class InvalidCredentialsError(DomainException):
+    pass

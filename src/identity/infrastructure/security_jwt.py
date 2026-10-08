@@ -4,7 +4,7 @@ from typing import Any
 
 import jwt
 
-from src.identity.infrastructure.interfaces.token_pair import ITokenPair
+from src.identity.infrastructure.dto.token_pair import TokenPairData
 
 
 class TokenGenerator:
@@ -16,7 +16,7 @@ class TokenGenerator:
         self.access_token_expire_minutes = access_token_expire_minutes
         self.refresh_token_expire_minutes = refresh_token_expire_minutes
 
-    def generate_pair(self, account_id: uuid.UUID) -> ITokenPair:
+    def generate_pair(self, account_id: uuid.UUID) -> TokenPairData:
         now = datetime.now(UTC)
 
         access_payload = {
@@ -36,7 +36,7 @@ class TokenGenerator:
         }
         refresh_token = jwt.encode(refresh_payload, self.secret_key, algorithm=self.algorithm)
 
-        return ITokenPair(access_token=access_token, refresh_token=refresh_token)
+        return TokenPairData(access_token=access_token, refresh_token=refresh_token)
 
 
 class TokenValidator:

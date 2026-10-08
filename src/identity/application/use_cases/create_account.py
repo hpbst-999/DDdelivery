@@ -2,11 +2,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from src.core.config import settings
-from src.identity.application.interfaces import ITokenGenerator, IUnitOfWork, TokenPair
+from src.identity.application.interfaces import ITokenGenerator, IUnitOfWork, ITokenData
 from src.identity.domain.entities.account import Account
 from src.identity.domain.entities.refresh_token import RefreshToken
 from src.identity.domain.entities.user_profile import UserProfile
-from src.identity.domain.exceptions import DomainException
+from src.identity.domain.exceptions import InvalidCredentialsError
 from src.identity.domain.value_objects.email import Email
 from src.identity.domain.value_objects.phone_number import PhoneNumber
 
@@ -18,17 +18,14 @@ class CreateAccountUseCase:
 
     async def execute(
         self, phone_number: PhoneNumber | None = None, email: Email | None = None
-    ) -> TokenPair:
-        if (phone_number is None and email is None) or (
-            phone_number is not None and email is not None
-        ):
-            raise DomainException
-
-        async with self._uow:
+    ) -> ITokenData:
+        async with self.uow:
             if phone_number is not None:
                 account = await self.uow.accounts.get_account_by_phone(phone_number)
-            else:
+            elif email is not None:
                 account = await self.uow.accounts.get_account_by_email(email)
+            else:
+                raise InvalidCredentialsError
 
             if not account:
                 account_id = uuid.uuid4()
