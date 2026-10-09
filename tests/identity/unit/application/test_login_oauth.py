@@ -1,73 +1,128 @@
-import uuid
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import pytest_asyncio
 
-from src.identity.application.dtos.oauth_user import OAuthUser
-from src.identity.application.dtos.token_pair import TokenPair
+from src.identity.application.interfaces import (
+    ICacheRepository,
+    IOAuthServiceFactory,
+    IUnitOfWork,
+)
 from src.identity.application.use_cases.login_oauth import LoginWithOAuthUseCase
-from src.identity.domain.entities.account import Account
+from src.identity.domain.exceptions import (
+    InvalidOAuthStateError,
+    OAuthStateMismatchError,
+)
 from src.identity.domain.value_objects.email import Email
-from tests.identity.fakes.fake_uow import FakeUnitOfWork
-
-
-class FakeTokenService:
-    def generate_pair(self, account_id: uuid.UUID) -> TokenPair:
-        return TokenPair(
-            access_token=f"oauth_access_for_{account_id}",
-            refresh_token=f"oauth_refresh_for_{account_id}",
-        )
-
-
-@pytest_asyncio.fixture
-async def uow():
-    return FakeUnitOfWork()
 
 
 @pytest.fixture
-def token_service():
-    return FakeTokenService()
+def mock_uow() -> MagicMock:
+    uow = MagicMock(spec=IUnitOfWork)
+    uow.__aenter__ = AsyncMock(return_value=uow)
+    uow.__aexit__ = AsyncMock(return_value=None)
+    uow.commit = AsyncMock()
+    return uow
 
 
 @pytest.fixture
-def use_case(uow, token_service):
-    return LoginWithOAuthUseCase(uow=uow, token_service=token_service)
+def mock_cache() -> MagicMock:
+    cache = MagicMock(spec=ICacheRepository)
+    cache.get = AsyncMock()
+    cache.delete = AsyncMock()
+    return cache
+
+
+@pytest.fixture
+def mock_oauth_service() -> MagicMock:
+    service = MagicMock()
+    service.get_user_info = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def mock_factory(mock_oauth_service: MagicMock) -> MagicMock:
+    factory = MagicMock(spec=IOAuthServiceFactory)
+    factory.get_service = MagicMock(return_value=mock_oauth_service)
+    return factory
 
 
 @pytest.mark.asyncio
-async def test_oauth_login_new_user_creates_account_and_profile(use_case, uow):
+async def test_login_with_oauth_success(
+    mock_uow: MagicMock,
+    mock_factory: MagicMock,
+    mock_oauth_service: MagicMock,
+    mock_cache: MagicMock,
+) -> None:
+    state = "test_state_123"
+    provider = "google"
+    code = "oauth_auth_code_xyz"
+    user_email_str = "user@gmail.com"
 
-    oauth_data = OAuthUser(email="new_user@example.com", name="Alex Smith")
+    mock_cache.get.return_value = provider
+    mock_user_info = MagicMock()
+    mock_user_info.email = user_email_str
+    mock_oauth_service.get_user_info.return_value = mock_user_info
 
-    tokens = await use_case.execute(user_info=oauth_data)
+    use_case = LoginWithOAuthUseCase(
+        uow=mock_uow,
+        factory=mock_factory,
+        cache=mock_cache,
+    )
 
-    assert tokens.access_token
-    assert tokens.refresh_token
+    result = await use_case.execute(state=state, provider=provider, code=code)
 
-    assert len(uow.accounts.accounts) == 1
-    assert len(uow.user_profiles.profiles) == 1
+    assert isinstance(result, Email)
+    assert result == Email(user_email_str)
 
-    saved_account = list(uow.accounts.accounts.values())[0]
-    assert str(saved_account.email) == "new_user@example.com"
-
-    saved_profile = list(uow.user_profiles.profiles.values())[0]
-    assert saved_profile.name == "Alex Smith"
-
-    assert uow.committed is True
+    cache_key = f"state:{state}"
+    mock_cache.get.assert_awaited_once_with(key=cache_key)
+    mock_cache.delete.assert_awaited_once_with(key=cache_key)
+    mock_factory.get_service.assert_called_once_with(provider)
+    mock_oauth_service.get_user_info.assert_awaited_once_with(code=code)
 
 
 @pytest.mark.asyncio
-async def test_oauth_login_existing_user_skips_creation(use_case, uow):
+async def test_login_with_oauth_invalid_or_expired_state(
+    mock_uow: MagicMock,
+    mock_factory: MagicMock,
+    mock_cache: MagicMock,
+) -> None:
+    state = "expired_state_999"
+    mock_cache.get.return_value = None
 
-    email_str = "existing_user@example.com"
-    existing_account = Account(id=uuid.uuid4(), email=Email(email_str))
-    await uow.accounts.add_account(existing_account)
+    use_case = LoginWithOAuthUseCase(
+        uow=mock_uow,
+        factory=mock_factory,
+        cache=mock_cache,
+    )
 
-    oauth_data = OAuthUser(email=email_str, name="Should Not Be Updated Here")
+    with pytest.raises(InvalidOAuthStateError, match="State is invalid or expired"):
+        await use_case.execute(state=state, provider="google", code="dummy_code")
 
-    tokens = await use_case.execute(user_info=oauth_data)
+    mock_cache.get.assert_awaited_once_with(key=f"state:{state}")
+    mock_cache.delete.assert_not_awaited()
+    mock_factory.get_service.assert_not_called()
 
-    assert tokens.access_token
-    assert len(uow.accounts.accounts) == 1
-    assert len(uow.user_profiles.profiles) == 0
-    assert uow.committed is True
+
+@pytest.mark.asyncio
+async def test_login_with_oauth_provider_mismatch(
+    mock_uow: MagicMock,
+    mock_factory: MagicMock,
+    mock_cache: MagicMock,
+) -> None:
+    state = "state_google_flow"
+    mock_cache.get.return_value = "google"
+
+    use_case = LoginWithOAuthUseCase(
+        uow=mock_uow,
+        factory=mock_factory,
+        cache=mock_cache,
+    )
+
+    with pytest.raises(OAuthStateMismatchError, match="State provider mismatch"):
+        await use_case.execute(state=state, provider="yandex", code="dummy_code")
+
+    cache_key = f"state:{state}"
+    mock_cache.get.assert_awaited_once_with(key=cache_key)
+    mock_cache.delete.assert_awaited_once_with(key=cache_key)
+    mock_factory.get_service.assert_not_called()

@@ -14,8 +14,8 @@ from src.identity.infrastructure.postgres_repositories import (
     SQLAlchemyUserProfileRepository,
 )
 from src.identity.infrastructure.redis_repositories import RedisCacheRepository
-from src.identity.infrastructure.security_jwt import JwtTokenService
-from src.identity.infrastructure.uow import SQLAlchemyUnitOfWork
+from src.identity.infrastructure.security_jwt import TokenGenerator, TokenValidator
+from src.identity.infrastructure.uow import UnitOfWork
 
 # These tests run against the real Postgres instance configured via settings
 # (the same database the app itself uses in dev - see .env). Every test gets
@@ -25,9 +25,8 @@ from src.identity.infrastructure.uow import SQLAlchemyUnitOfWork
 
 @pytest_asyncio.fixture
 async def engine() -> AsyncGenerator[AsyncEngine, None]:
-    # Function-scoped (not session-scoped) on purpose: pytest-asyncio gives
-    # each test its own event loop by default, and an asyncpg connection
-    # pool created on one loop cannot be reused from another.
+    # Function-scoped on purpose: pytest-asyncio gives each test its own event loop,
+    # and an asyncpg connection pool created on one loop cannot be reused from another.
     test_engine = create_async_engine(settings.database_url)
     yield test_engine
     await test_engine.dispose()
@@ -60,8 +59,8 @@ async def session(connection: AsyncConnection) -> AsyncGenerator[AsyncSession, N
 
 
 @pytest_asyncio.fixture
-async def uow(session: AsyncSession) -> SQLAlchemyUnitOfWork:
-    return SQLAlchemyUnitOfWork(session=session)
+async def uow(session: AsyncSession) -> UnitOfWork:
+    return UnitOfWork(session=session)
 
 
 @pytest_asyncio.fixture
@@ -84,9 +83,18 @@ async def refresh_token_repo(session: AsyncSession) -> SQLAlchemyRefreshTokenRep
     return SQLAlchemyRefreshTokenRepository(session)
 
 
-@pytest_asyncio.fixture
-async def token_service() -> JwtTokenService:
-    return JwtTokenService(secret_key=settings.JWT_SECRET_KEY)
+@pytest.fixture
+def token_generator() -> TokenGenerator:
+    return TokenGenerator(
+        secret_key=settings.JWT_SECRET_KEY,
+        access_token_expire_minutes=15,
+        refresh_token_expire_minutes=30 * 24 * 60,
+    )
+
+
+@pytest.fixture
+def token_validator() -> TokenValidator:
+    return TokenValidator(secret_key=settings.JWT_SECRET_KEY)
 
 
 @pytest_asyncio.fixture
@@ -95,9 +103,6 @@ async def redis_client() -> AsyncGenerator[Redis, None]:
     try:
         yield client
     finally:
-        # Every key used by these tests is created via the `cache_key` fixture
-        # below under the "itest:" prefix, so sweeping that pattern can never
-        # touch real app keys.
         cursor = 0
         while True:
             cursor, keys = await client.scan(cursor=cursor, match="itest:*")

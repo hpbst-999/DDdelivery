@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
-
+import uuid
+from fastapi import Request
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,3 +43,6 @@ def get_create_courier_use_case(uow: IUnitOfWork = Depends(get_uow)) -> CreateCo
 
 def get_change_courier_status_use_case(uow=Depends(get_uow)) -> ChangeCourierStatusUseCase:
     return ChangeCourierStatusUseCase(uow=uow)
+
+async def get_courier_account_id(request: Request) -> uuid.UUID:
+    raise NotImplementedError("dependency in main.py")

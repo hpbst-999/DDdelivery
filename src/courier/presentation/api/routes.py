@@ -15,14 +15,14 @@ from src.courier.presentation.dependencies import (
     get_delete_courier_use_case,
     get_update_courier_profile_use_case,
 )
-from src.identity.presentation.security import get_current_account_id
+from src.courier.presentation.dependencies import get_courier_account_id
 
 router = APIRouter(tags=["Courier"])
 
 
 @router.get("/me", response_model=CourierProfileResponse)
 async def get_courier_profile(
-    account_id: UUID = Depends(get_current_account_id),
+    account_id: UUID = Depends(get_courier_account_id),
     use_case=Depends(get_courier_profile_use_case),
 ) -> CourierProfileResponse:
     try:
@@ -34,7 +34,7 @@ async def get_courier_profile(
 
 @router.post("/me", status_code=status.HTTP_201_CREATED)
 async def create_courier_profile(
-    account_id: UUID = Depends(get_current_account_id),
+    account_id: UUID = Depends(get_courier_account_id),
     use_case=Depends(get_create_courier_use_case),
 ) -> None:
     try:
@@ -46,7 +46,7 @@ async def create_courier_profile(
 @router.patch("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def update_courier_profile(
     data: UpdateCourierProfileRequest,
-    account_id: UUID = Depends(get_current_account_id),
+    account_id: UUID = Depends(get_courier_account_id),
     use_case=Depends(get_update_courier_profile_use_case),
 ) -> None:
     try:
@@ -59,7 +59,7 @@ async def update_courier_profile(
 
 @router.delete("/me", status_code=204)
 async def delete_courier_account(
-    account_id: UUID = Depends(get_current_account_id),
+    account_id: UUID = Depends(get_courier_account_id),
     use_case=Depends(get_delete_courier_use_case),
 ) -> None:
     try:
@@ -71,7 +71,7 @@ async def delete_courier_account(
 @router.patch("/me/status", status_code=status.HTTP_204_NO_CONTENT)
 async def change_courier_status(
     target_status: CourierStatus = Query(..., description="Courier status"),
-    account_id: UUID = Depends(get_current_account_id),
+    account_id: UUID = Depends(get_courier_account_id),
     use_case=Depends(get_change_courier_status_use_case),
 ) -> None:
     try:
